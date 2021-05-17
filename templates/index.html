@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Infinigru AI Lab</title>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <!-- Add icon library -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+    <style>
+      /* body {
+        background-color:darkgrey;
+      } */
+      .container{
+        padding: 15px;
+      }
+
+      canvas {
+        width: 100%;
+        height: 100px;
+        border-top: 1px solid black;
+        border-bottom: 1px solid black;
+      }
+
+      .tab-content {
+          margin-top: 10px;
+          padding-top: 10px;
+          padding-bottom: 10px;
+          margin-bottom: 10px;
+          background-color: white;
+      }
+
+      li {
+          background-color: white;
+      }
+
+      #record-sound-section, #file-res, #record-res, #file-sound {
+          margin-top: 10px;
+          margin-bottom: 10px;
+      }
+      #asr-text{
+        width: 100%;
+        min-height: 200px;
+        border-radius: 8px;
+        background-image: url(/static/demo_bg.png);
+        background-repeat: no-repeat;
+        position: relative;
+        padding: 24px;
+        background-size: 100% 100%;
+      }
+      .checked {
+        color: orange;
+      }
+      
+
+    </style>
+  </head>
+ 
+  <body>
+
+    <div class="container">
+      <div class="col-sm-9">
+        <img src="static/infinigru_logo.png" width="160px" alt="InfiniGru Navigation Logo">
+        <br/><br/>
+        <h2>STT Demo For ACB</h2>
+        <br/><br/>
+        <ul class="nav nav-pills nav-justified">
+          <li class="active"><a data-toggle="pill" href="#record">Record Audio</a></li>
+          <li ><a data-toggle="pill" href="#file">Upload File</a></li>
+          
+        </ul>
+        <br/>
+
+        <div class="tab-content">
+          <div id="file" class="tab-pane fade ">
+            <form id='recognize-file' enctype="multipart/form-data">
+              <div class="input-group">
+                <input type="file" id="input-file" name="input-file" class="form-control" accept="audio/*" required>
+                <div class="input-group-btn">
+                  <button class="btn btn-primary" type="submit">Upload</button>
+                </div>
+              </div>
+            </form>
+            <audio id="file-sound" name="file-sound" control></audio>
+            <div id="file-res">
+              <div id="file-time"></div>
+              <div id="file-upload"></div>
+              <div id="file-recognize"></div>
+              <div id="file-correct"></div>
+              <div id="file-google"></div>
+              <div id="file-progress-bar"></div>
+              <div id="file-res-table"></div>
+            </div>
+          </div>
+
+          <div id="record" class="tab-pane fade in active">
+            <form id='recognize-record' enctype="multipart/form-data">
+              <div class="btn-group btn-group-justified" role="group">
+                <div class="btn-group" role="group">
+                  <button id="record-btn" type="button" class="btn btn-default btn-outline">
+                    <i id="record-icon" class="glyphicon glyphicon-record"></i>
+                  </button>
+                </div>
+                <div class="btn-group" role="group">
+                  <button id="stop-btn" type="button" class="btn btn-default btn-outline">
+                    <i id="stop-icon" class="glyphicon glyphicon-stop"></i>
+                  </button>
+                </div>
+              </div>
+              <div id="record-sound-section"></div>
+            </form>
+            <div id="record-res">
+              <div id="record-time"></div>
+              <div id="record-upload"></div>
+              <div id="record-recognize"></div>
+              <div id="record-correct"></div>
+              <div id="record-google"></div>
+              <div id="record-progress-bar"></div>
+              <div id="record-res-table"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-editor">
+          Nội dung:<br/>
+          <div id="asr-text" disabled="disabled" placeholder="Record, upload file or use audio samples above" class="asr-editor" style="resize: none;">
+        </div>
+
+
+        </div>
+        <div class="collapse" id="sample-audio">
+          <audio controls>
+            <!-- <source src="https://s0.vocaroo.com/media/download_temp/Vocaroo_s0eWZPBnjWH1.mp3" type="audio/mp3"> -->
+          Your browser does not support the audio element.
+          </audio>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      var recordData
+
+      var fileTotalSeconds = 0;
+
+      var recordTotalSeconds = 0;
+
+      var googleRes = "";
+      var gruRes = "";
+
+      function getError(type) {
+        $(`#${type}-time`).html('')
+        $(`#${type}-progress-bar`).html('')
+
+        $(`#${type}-res-table`).html(`Error!`)
+      }
+
+      function runMain(type, formdata) {
+        
+        $(`#${type}-upload`).html(``)
+        $(`#${type}-recognize`).html(``)
+ 
+        //$(`#${type}-upload`).html('Uploading ... ')
+
+        $.ajax({
+          url: `/upload${type}`,
+          type: "post",
+          dataType: "html",
+          data: formdata,
+          encode: true,
+          processData: false,
+          cache: false,
+          contentType: false,
+
+          success: function( data ){
+            data = JSON.parse(data)
+            
+            // noi dung
+            googleRes = data.result;
+            $("#asr-text").html(googleRes);
+
+            // //sentiment
+            // proba = parseFloat(data.result[1]);
+            // var stars = Math.ceil(proba * 5);
+            // $("#emotion-div").text(stars+" sao");
+
+            // //topic
+            // $("#topic-div").text(data.result[2]);
+
+            $(`#${type}-recognize`).html('Recognizing ... <strong>DONE!</strong>')
+            //$(`#${type}-upload`).html(`Uploading ... <strong>DONE!</strong> (${response[0]} s)`)
+          },
+          
+          error: function(error) {
+            console.log(error)
+            getError(type)
+          }
+        })
+      }
+
+
+      function pad(val) {
+        var valString = val + "";
+        if (valString.length < 2) {
+          return "0" + valString;
+        } else {
+          return valString;
+        }
+      }
+
+      $('#record-btn').click(function() {
+        $( this ).css( "background-color", "white" )
+        $('#record-icon').css('color', 'red')
+        $('#stop-icon').css('color', '#333')
+      })
+
+      $('#stop-btn').click(function() {
+        $( this ).css( "background-color", "white" )
+        $('#stop-icon').css('color', 'red')
+        $('#record-icon').css('color', '#333')
+      })
+
+      $('#record-btn').mouseenter(function() {
+        $( this ).css( "background-color", "#e6e6e6" )
+      }).mouseleave(function() {
+        $( this ).css( "background-color", "white" )
+      })
+      
+      $('#stop-btn').mouseenter(function() {
+        $( this ).css( "background-color", "#e6e6e6" )
+      }).mouseleave(function() {
+        $( this ).css( "background-color", "white" )
+      })
+
+      $('#input-file').change(function() {
+        var input = document.getElementById("input-file")
+
+        file = input.files[0]
+        console.log(file)
+
+        var sound = document.getElementById("file-sound")
+        var reader = new FileReader()
+        reader.onload = function(e) {
+          sound.src = this.result
+          sound.controls = true
+        }
+        reader.readAsDataURL(file)
+      })
+
+      $("#recognize-file").submit(function( event ) {
+        event.preventDefault()
+
+        var formdata = new FormData()
+        formdata.append("file", file)
+
+        runMain('file', formdata)
+      })
+
+      navigator.getUserMedia = (  navigator.getUserMedia ||
+                                  navigator.webkitGetUserMedia ||
+                                  navigator.mozGetUserMedia ||
+                                  navigator.msGetUserMedia )
+
+      var record = document.querySelector('#record-btn')
+      var stop = document.querySelector('#stop-btn')
+      var audioSection = $('#record-sound-section')
+
+      var audioCtx = new (window.AudioContext || webkitAudioContext)();
+      var cntAudio = 1;
+
+      if (navigator.getUserMedia) {
+        navigator.getUserMedia (
+          // constraints - only audio needed for this app
+          {
+            audio: true
+          },
+
+          // Success callback
+          function(stream) {
+            var mediaRecorder = new MediaRecorder(stream);
+
+            //visualize(stream);
+
+            record.onclick = function() {
+              mediaRecorder.start();
+              console.log(mediaRecorder.state);
+              console.log("recorder started");
+              //audioSection.html('Recording...')
+            }
+
+            stop.onclick = function() {
+              mediaRecorder.stop();
+              console.log(mediaRecorder.state);
+              console.log("recorder stopped");
+            }
+
+            mediaRecorder.ondataavailable = function(e) {
+              console.log("data available");
+
+              var clipName = "Audio "+cntAudio;
+              cntAudio++;
+
+              var audioURL = window.URL.createObjectURL(e.data);
+
+              recordData = e.data
+
+              $("#recognize-record").submit();
+
+              
+            }
+          },
+
+          // Error callback
+          function(err) {
+            console.log('The following gUM error occured: ' + err);
+          }
+        );
+      } else {
+        console.log('getUserMedia not supported on your browser!');
+      }
+
+
+      $("#recognize-record").submit(function( event ) {
+        event.preventDefault()
+        
+        var formdata = new FormData()
+        formdata.append('file', recordData)
+
+        runMain('record', formdata)
+      })
+    </script>
+  </body>
+</html>
