@@ -88,6 +88,17 @@ def do_vad_split(infile):
 
     file_splits = os.path.splitext(infile)
     current_split = 0
+
+    # for the case first silence_start != 0
+    if silences[0] != 0:
+        commands = ["ffmpeg", "-t", str(silences[0]  + 2 * 0.25), "-i", infile, f"{file_splits[0]}_{current_split:03}{file_splits[1]}"]
+        subprocess.run(
+            commands,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        current_split += 1
+
     for idx in range(1, len(silences), 2):
         commands = [
             "ffmpeg",

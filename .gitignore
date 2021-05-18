@@ -1,0 +1,8 @@
+venv/
+models/
+__pycache__/
+stt-serving.tar.gz
+upload/
+test/
+.vscode/
+asset/
