@@ -59,32 +59,6 @@ def uploadFile():
     return jsonify(result="success")
 
 
-@cross_origin()
-@app.route("/uploadrecord", methods=["POST"])
-def uploadRecord():
-    try:
-        filename = upload_file()
-        filename = preprocess(filename)
-        output = speech_to_text(filename)
-
-        channel = int(request.form.get("channel"))
-        print("channel", channel)
-
-        # send to websocket
-        send_msg(output, channel)
-
-        # save conversation
-        f = open("conversation.txt", "a+", encoding="utf-8")
-        f.write(output + "\n")
-        f.close()
-
-    except Exception as e:
-        print("Unexpected error:", e)
-        output = ""
-
-    return jsonify(result=output)
-
-
 @app.route("/start-call", methods=["GET"])
 def start_call_test():
     start_call()

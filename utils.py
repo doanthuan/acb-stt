@@ -5,7 +5,7 @@ import subprocess
 import timeit
 from datetime import datetime
 from os import path
-from typing import Dict
+from typing import Any, Dict, Iterator, List, Tuple
 
 import requests
 from flask import request
@@ -16,7 +16,7 @@ from config import settings
 p = Pipeline("vietnamese")
 
 
-def upload_file():
+def upload_file() -> str:
     file = request.files["file"]
     filename = f"uploaded_file_{timeit.default_timer()}.wav"
     file.save(path.join(settings.UPLOAD_DIR, filename))
@@ -26,7 +26,7 @@ def upload_file():
     # return filename
 
 
-def preprocess(filename):
+def preprocess(filename: str) -> Iterator[Tuple[str, str]]:
     # os.system('ffmpeg -i %s -ar 16000 -ac 1 -ab 256000 upload/upload.wav -y' % filename)
     infile_path = path.join(settings.UPLOAD_DIR, filename)
     format_file = path.join(settings.UPLOAD_DIR, f"format_{filename}")
@@ -72,7 +72,7 @@ def preprocess(filename):
     return list_sentences
 
 
-def process_audio_sentence(input_sen, channel, call_id):
+def process_audio_sentence(input_sen, channel, call_id) -> None:
     # convert speech to text by using dinosoft api
     text = speech_to_text(input_sen)
 
@@ -88,7 +88,7 @@ def process_audio_sentence(input_sen, channel, call_id):
     send_msg(text, channel, call_id, name_list, address_list, id_number, phone_number)
 
 
-def do_vad_split(infile):
+def do_vad_split(infile: str) -> List[str]:
 
     output = subprocess.run(
         [
@@ -109,7 +109,9 @@ def do_vad_split(infile):
         if "silence_" in line:
             start_idx = line.find(":") + 1
             if "|" in line:
-                time_offset = float(line[start_idx: line.find("|")].strip())
+                time_offset = float(
+                    line[start_idx : line.find("|")].strip()  # noqa: E203
+                )
             else:
                 time_offset = float(line[start_idx:].strip())
             silences.append(time_offset)
@@ -165,7 +167,7 @@ def do_vad_split(infile):
     return audio_files
 
 
-def speech_to_text(filename):
+def speech_to_text(filename: str) -> str:
 
     result = ""
     audio_file = path.join(path.dirname(path.realpath(__file__)), filename)
@@ -186,7 +188,7 @@ def speech_to_text(filename):
     return result
 
 
-def parse_stt_result(json_result: Dict):
+def parse_stt_result(json_result: Dict) -> str:
     if len(json_result["Model"]) == 0:
         print("STT Engine returns nothings")
         return ""
@@ -199,13 +201,12 @@ def parse_stt_result(json_result: Dict):
     return " ".join(result)
 
 
-def join_files(file1, file2):
-    with open(file1, "ab") as myfile, open(file2, "rb") as file2:
-        myfile.write(file2.read())
+def join_files(file1: str, file2: str) -> None:
+    with open(file1, "ab") as outfile, open(file2, "rb") as infile:
+        outfile.write(infile.read())
 
 
-def start_call():
-
+def start_call() -> None:
     data = {
         "caller": "customer",
         "agentId": 1102,
@@ -220,11 +221,18 @@ def start_call():
     return json_result["model"]["id"]
 
 
-def send_msg(msg, channel, call_id, name_list, address_list, id_number, phone_number):
-    line = "agent" if channel == 1 else "customer"
+def send_msg(
+    msg: str = None,
+    channel: int = None,
+    call_id: int = None,
+    name_list: List[str] = None,
+    address_list: List[str] = None,
+    id_number: str = None,
+    phone_number: str = None,
+) -> None:
     data = {
         "callId": call_id,
-        "line": line,
+        "line": "agent" if channel == 1 else "customer",
         "textContent": msg,
         "audioPath": "/audio/test",
         "startTime": str(datetime.date(datetime.now())),
@@ -237,7 +245,7 @@ def send_msg(msg, channel, call_id, name_list, address_list, id_number, phone_nu
     requests.post(settings.API_URL + "/public/stt/call/conversation", json=data)
 
 
-def parse_name_entity(text):
+def parse_name_entity(text: str) -> Tuple[List[str], List[str]]:
     # name entity recognition
     vi_output = p.ner(text)
 
@@ -255,7 +263,7 @@ def parse_name_entity(text):
 
 
 # from vietnam_number import w2n_single, w2n_couple
-def parse_id_phone_number(text):
+def parse_id_phone_number(text) -> Tuple[str, str]:
     text = text.replace("KHÔNG", "0")
     text = text.replace("MỘT", "1")
     text = text.replace("HAI", "2")
@@ -267,12 +275,19 @@ def parse_id_phone_number(text):
     text = text.replace("TÁM", "8")
     text = text.replace("CHÍN", "9")
 
-    id_regex = "(\w ){9}"
-    phone_regex = "(\w ){10}"
+    # id_regex = r"(\w ){9}"
+    # phone_regex = r"(\w ){10}"
 
-    start, end = re.search(id_regex, text).span()
-    id_number = text[start + 1: end]
-    start, end = re.search(phone_regex, text).span()
-    phone_number = text[start + 1: end]
+    id_number = extract_info(r"(\w ){9}", text)
+    phone_number = extract_info(r"(\w ){10}", text)
 
     return id_number, phone_number
+
+
+def extract_info(regex: str, text: str) -> str:
+    match = re.search(regex, text)
+    if match is None:
+        return ""
+
+    start, end = match.span()
+    return text[start + 1 : end]  # noqa: E203
