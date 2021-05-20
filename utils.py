@@ -5,13 +5,13 @@ import subprocess
 import timeit
 from datetime import datetime
 from os import path
-from typing import Any, Dict, Iterator, List, Tuple
+from typing import Dict, Iterator, List, Tuple
 
 import requests
 from flask import request
 from trankit import Pipeline
 
-from config import settings
+from .config import settings
 
 p = Pipeline("vietnamese")
 

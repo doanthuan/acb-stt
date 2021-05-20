@@ -6,5 +6,6 @@ upload/
 test/
 .vscode/
 asset/
-cache/
+.git
 .mypy_cache
+cache/

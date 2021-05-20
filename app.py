@@ -1,16 +1,9 @@
 import requests
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template
 from flask_cors import CORS, cross_origin
 
-from config import settings
-from utils import (
-    preprocess,
-    process_audio_sentence,
-    send_msg,
-    speech_to_text,
-    start_call,
-    upload_file,
-)
+from .config import settings
+from .utils import preprocess, process_audio_sentence, start_call, upload_file
 
 # from models.train_sentiment.DataSource import normalize_text
 # from correct_spell import get_best_sentence

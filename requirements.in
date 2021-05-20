@@ -5,3 +5,6 @@ joblib
 trankit
 pydantic
 environs
+gunicorn
+uvicorn
+uvloop
