@@ -50,6 +50,9 @@ def uploadFile():
         process_audio_sentence(left_sen, 1, call_id)
         process_audio_sentence(right_sen, 2, call_id)
     
+    #stop a call
+    stop_call()
+
     return(jsonify(result="success"))
 
 @cross_origin()

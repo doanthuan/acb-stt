@@ -8,6 +8,7 @@ import glob
 import requests
 from flask import request
 from datetime import datetime
+import re
 
 API_STT = "http://stt.dinosoft.vn/api/v1/speechtotextapi/post-and-decode-file"
 API_URL = 'http://localhost:5000/api'
@@ -50,9 +51,13 @@ def process_audio_sentence(input_sen, channel, call_id):
     # TODO: keyword detection + post actions if keyword matched
 
     # TODO: name entity recoginition
+    name_list, address_list = parse_name_entity(text)
+
+    # TODO: cmnd, sdt
+    id_number, phone_number = parse_id_phone_number(text)
 
     # TODO: get result and push web socket to GUI display in dialog
-    send_msg(text, channel, call_id)
+    send_msg(text, channel, call_id, name_list, address_list, id_number, phone_number)
 
 
 def do_vad_split(infile):
@@ -173,11 +178,68 @@ def start_call():
     json_result = r.json()
     return json_result["model"]['id']
 
-def send_msg(msg, channel, call_id):
+def send_msg(msg, channel, call_id, name_list, address_list, id_number, phone_number):
     if channel == 1:
         line = "agent"
     else:
         line = "customer"
-    data = {"callId": call_id, "line": line, "textContent": msg, 'audioPath':"/audio/test", "startTime": str(datetime.date(datetime.now()))}
+    data = {
+        "callId": call_id, 
+        "line": line, 
+        "textContent": msg, 
+        'audioPath':"/audio/test", 
+        "startTime": str(datetime.date(datetime.now())),
+        "nameList": name_list,
+        "addressList": address_list,
+        "idNumber": id_number,
+        "phoneNumber": phone_number,
+        }
 
     r = requests.post(API_URL+'/public/stt/call/conversation', json=data)
+
+
+from trankit import Pipeline
+from pprint import pprint
+p = Pipeline('vietnamese')
+
+def parse_name_entity(text):
+    # name entity recognition
+    vi_output = p.ner(text)
+
+    token_list = vi_output['sentences'][0]['tokens']
+
+    name_list = []
+    address_list = []
+    for token in token_list:
+        if token['ner'] == 'B-PER':
+            name_list.append(token['text'])
+        if 'LOC' in token['ner']:
+            address_list.append(token['text'])
+
+    return name_list, address_list
+
+
+#from vietnam_number import w2n_single, w2n_couple
+def parse_id_phone_number(text):
+    text = text.replace("KHÔNG", "0")
+    text = text.replace("MỘT", "1")
+    text = text.replace("HAI", "2")
+    text = text.replace("BA", "3")
+    text = text.replace("BỐN", "4")
+    text = text.replace("NĂM", "5")
+    text = text.replace("SÁU", "6")
+    text = text.replace("BẢY", "7")
+    text = text.replace("TÁM", "8")
+    text = text.replace("CHÍN", "9")
+
+    id_regex= "(\w ){9}"
+    phone_regex = "(\w ){10}"
+
+    start, end  = re.search(id_regex, text).span()
+    id_number = text[start+1:end]
+    start, end  = re.search(phone_regex, text).span()
+    phone_number = text[start+1:end]
+
+    return id_number, phone_number
+
+    
