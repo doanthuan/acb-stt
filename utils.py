@@ -9,6 +9,7 @@ import requests
 from flask import request
 from datetime import datetime
 import re
+from trankit import Pipeline
 
 API_STT = "http://stt.dinosoft.vn/api/v1/speechtotextapi/post-and-decode-file"
 API_URL = 'http://localhost:5000/api'
@@ -198,8 +199,7 @@ def send_msg(msg, channel, call_id, name_list, address_list, id_number, phone_nu
     r = requests.post(API_URL+'/public/stt/call/conversation', json=data)
 
 
-from trankit import Pipeline
-from pprint import pprint
+
 p = Pipeline('vietnamese')
 
 def parse_name_entity(text):
