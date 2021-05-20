@@ -9,5 +9,5 @@ speech to text demo for acb
 ## Docker run
 ```
     $ docker build . -t <docker-image>
-    $ docker run --rm <docker-image> -p <custom-port>:80
+    $ docker run --rm -e CACHE_DIR=/cache -e MAX_WORKERS=1 -v <path-to-trankit-cache>:/cache  -p <custom-port>:80 <docker-image>
 ```
