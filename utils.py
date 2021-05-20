@@ -1,43 +1,68 @@
+import glob
+import os
 import subprocess
 import timeit
-import pandas as pd
+from datetime import datetime
 from os import path
-import os
-import time
-import glob
+from typing import Dict
+
 import requests
 from flask import request
-from datetime import datetime
 
-API_STT = "http://stt.dinosoft.vn/api/v1/speechtotextapi/post-and-decode-file"
-API_URL = 'http://localhost:5000/api'
+from config import settings
+
 
 def upload_file():
-    start_time = timeit.default_timer()
-    file = request.files['file']
-    filename = "uploaded_file_%s.wav" % start_time
-    file.save("upload/"+filename)
+    file = request.files["file"]
+    filename = f"uploaded_file_{timeit.default_timer()}.wav"
+    file.save(path.join(settings.UPLOAD_DIR, filename))
     return filename
-    
-    #elapsed = timeit.default_timer() - start_time
-    #return filename
+
+    # elapsed = timeit.default_timer() - start_time
+    # return filename
+
 
 def preprocess(filename):
     # os.system('ffmpeg -i %s -ar 16000 -ac 1 -ab 256000 upload/upload.wav -y' % filename)
-    format_file = "format_"+ filename
-    left_file = "left_"+ format_file
-    right_file = "right_"+ format_file
-    #subprocess.call(['ffmpeg', '-i', "upload/"+filename, '-ar', '16000', '-ac', '1', '-ab', '256000', "upload/"+ format_file, '-y'])
-    #subprocess.call(['ffmpeg', '-i', "upload/"+filename, '-ar', '16000', '-af','afftdn=nf=-20', "upload/"+ format_file, '-y'])
-    subprocess.call(['ffmpeg', '-i', "upload/"+filename, '-ar', '16000', '-af','highpass=f=200, lowpass=f=3000', "upload/"+ format_file, '-y'])
+    infile_path = path.join(settings.UPLOAD_DIR, filename)
+    format_file = path.join(settings.UPLOAD_DIR, f"format_{filename}")
+    left_file = path.join(settings.UPLOAD_DIR, f"left_{format_file}")
+    right_file = path.join(settings.UPLOAD_DIR, f"right_{format_file}")
+    # subprocess.call(['ffmpeg', '-i', "upload/"+filename, '-ar', '16000', '-ac', '1', '-ab', '256000', "upload/"+ format_file, '-y'])
+    # subprocess.call(['ffmpeg', '-i', "upload/"+filename, '-ar', '16000', '-af','afftdn=nf=-20', "upload/"+ format_file, '-y'])
+    subprocess.call(
+        [
+            "ffmpeg",
+            "-i",
+            infile_path,
+            "-ar",
+            "16000",
+            "-af",
+            "highpass=f=200, lowpass=f=3000",
+            format_file,
+            "-y",
+        ]
+    )
 
-    #split audio by channels
-    subprocess.call(['ffmpeg', '-i', "upload/"+format_file, '-map_channel', '0.0.0', "upload/"+left_file , '-map_channel', '0.0.1', "upload/"+right_file])
+    # split audio by channels
+    subprocess.call(
+        [
+            "ffmpeg",
+            "-i",
+            format_file,
+            "-map_channel",
+            "0.0.0",
+            left_file,
+            "-map_channel",
+            "0.0.1",
+            right_file,
+        ]
+    )
 
-    #split sentences by silence
-    #subprocess.call(['ffmpeg', '-i', "upload/"+left_file, '-af', 'silencedetect=noise=-20dB:d=1', '-f', 'null', '-', '2>', 'vol.txt'])
-    left_sentences = do_vad_split("upload/"+left_file)
-    right_sentences = do_vad_split("upload/"+right_file)
+    # split sentences by silence
+    # subprocess.call(['ffmpeg', '-i', "upload/"+left_file, '-af', 'silencedetect=noise=-20dB:d=1', '-f', 'null', '-', '2>', 'vol.txt'])
+    left_sentences = do_vad_split(left_file)
+    right_sentences = do_vad_split(right_file)
     list_sentences = zip(left_sentences, right_sentences)
 
     return list_sentences
@@ -91,7 +116,14 @@ def do_vad_split(infile):
 
     # for the case first silence_start != 0
     if silences[0] != 0:
-        commands = ["ffmpeg", "-t", str(silences[0]  + 2 * 0.25), "-i", infile, f"{file_splits[0]}_{current_split:03}{file_splits[1]}"]
+        commands = [
+            "ffmpeg",
+            "-t",
+            str(silences[0] + 2 * 0.25),
+            "-i",
+            infile,
+            f"{file_splits[0]}_{current_split:03}{file_splits[1]}",
+        ]
         subprocess.run(
             commands,
             stdout=subprocess.PIPE,
@@ -124,16 +156,15 @@ def do_vad_split(infile):
     audio_files.sort()
     return audio_files
 
+
 def speech_to_text(filename):
-    #start_time = timeit.default_timer()
 
-    AUDIO_FILE = path.join(path.dirname(path.realpath(__file__)), '%s' % filename)
+    result = ""
+    audio_file = path.join(path.dirname(path.realpath(__file__)), filename)
 
-    data = {
-        "apiKey": "api-642ce45e-d48c-4811-8cae-3de45027968a"
-        }
-    files = {'file': open(AUDIO_FILE, 'rb')}
-    r = requests.post(API_STT, files=files, data=data)
+    data = {"apiKey": "api-642ce45e-d48c-4811-8cae-3de45027968a"}
+    files = {"file": open(audio_file, "rb")}
+    r = requests.post(settings.API_STT, files=files, data=data)
 
     if r.ok:
         print("Upload completed successfully!")
@@ -142,16 +173,22 @@ def speech_to_text(filename):
         print(result)
     else:
         print("Something went wrong!")
-    
+
     return result
 
-def parse_stt_result(json_result):
-    result = ""
-    if len(json_result["Model"]) > 0:
-        transcript_list = json_result["Model"][0]['result']['hypotheses']
-        for transcript in transcript_list:
-            result += transcript['transcript']
-    return result
+
+def parse_stt_result(json_result: Dict):
+    if len(json_result["Model"]) == 0:
+        print("STT Engine returns nothings")
+        return ""
+
+    result = []
+    for segment in json_result["Model"]:
+        # multiple transcripts in hypotheses ???
+        result.append(segment["result"]["hypotheses"][0]["transcript"])
+
+    return " ".join(result)
+
 
 def join_files(file1, file2):
     with open(file1, "ab") as myfile, open(file2, "rb") as file2:
@@ -160,24 +197,31 @@ def join_files(file1, file2):
 
 def start_call():
 
-    data = {            
-            "caller": "customer",
-            "agentId": 1102,
-            "isOutbound": True,
-            "startTime": "2021-05-14T15:41:12.121212",
-            "endTime": "",
-            "criticalScore": 1
-            }
+    data = {
+        "caller": "customer",
+        "agentId": 1102,
+        "isOutbound": True,
+        "startTime": str(datetime.now()),
+        "endTime": "",
+        "criticalScore": 1,
+    }
 
-    r = requests.post(API_URL+'/public/stt/call/start', json=data)
+    r = requests.post(settings.API_URL + "/public/stt/call/start", json=data)
     json_result = r.json()
-    return json_result["model"]['id']
+    return json_result["model"]["id"]
+
 
 def send_msg(msg, channel, call_id):
-    if channel == 1:
-        line = "agent"
-    else:
-        line = "customer"
-    data = {"callId": call_id, "line": line, "textContent": msg, 'audioPath':"/audio/test", "startTime": str(datetime.date(datetime.now()))}
+    line = "agent" if channel == 1 else "customer"
+    data = {
+        "callId": call_id,
+        "line": line,
+        "textContent": msg,
+        "audioPath": "/audio/test",
+        "startTime": str(datetime.now()),
+    }
 
-    r = requests.post(API_URL+'/public/stt/call/conversation', json=data)
+    try:
+        requests.post(settings.API_URL + "/public/stt/call/conversation", json=data)
+    except Exception as e:
+        print("Unexpected exception occurred: ", e)
