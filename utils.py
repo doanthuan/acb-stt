@@ -1,5 +1,6 @@
 import glob
 import os
+import re
 import subprocess
 import timeit
 from datetime import datetime
@@ -8,8 +9,11 @@ from typing import Dict
 
 import requests
 from flask import request
+from trankit import Pipeline
 
 from config import settings
+
+p = Pipeline("vietnamese")
 
 
 def upload_file():
@@ -75,9 +79,13 @@ def process_audio_sentence(input_sen, channel, call_id):
     # TODO: keyword detection + post actions if keyword matched
 
     # TODO: name entity recoginition
+    name_list, address_list = parse_name_entity(text)
+
+    # TODO: cmnd, sdt
+    id_number, phone_number = parse_id_phone_number(text)
 
     # TODO: get result and push web socket to GUI display in dialog
-    send_msg(text, channel, call_id)
+    send_msg(text, channel, call_id, name_list, address_list, id_number, phone_number)
 
 
 def do_vad_split(infile):
@@ -101,7 +109,7 @@ def do_vad_split(infile):
         if "silence_" in line:
             start_idx = line.find(":") + 1
             if "|" in line:
-                time_offset = float(line[start_idx : line.find("|")].strip())
+                time_offset = float(line[start_idx: line.find("|")].strip())
             else:
                 time_offset = float(line[start_idx:].strip())
             silences.append(time_offset)
@@ -162,17 +170,18 @@ def speech_to_text(filename):
     result = ""
     audio_file = path.join(path.dirname(path.realpath(__file__)), filename)
 
-    data = {"apiKey": "api-642ce45e-d48c-4811-8cae-3de45027968a"}
+    data = {"apiKey": settings.STT_API_KEY}
     files = {"file": open(audio_file, "rb")}
     r = requests.post(settings.API_STT, files=files, data=data)
 
-    if r.ok:
-        print("Upload completed successfully!")
-        response = r.json()
-        result = parse_stt_result(response)
-        print(result)
-    else:
+    if not r.ok:
         print("Something went wrong!")
+        return ""
+
+    print("Upload completed successfully!")
+    response = r.json()
+    result = parse_stt_result(response)
+    print(result)
 
     return result
 
@@ -211,17 +220,59 @@ def start_call():
     return json_result["model"]["id"]
 
 
-def send_msg(msg, channel, call_id):
+def send_msg(msg, channel, call_id, name_list, address_list, id_number, phone_number):
     line = "agent" if channel == 1 else "customer"
     data = {
         "callId": call_id,
         "line": line,
         "textContent": msg,
         "audioPath": "/audio/test",
-        "startTime": str(datetime.now()),
+        "startTime": str(datetime.date(datetime.now())),
+        "nameList": name_list,
+        "addressList": address_list,
+        "idNumber": id_number,
+        "phoneNumber": phone_number,
     }
 
-    try:
-        requests.post(settings.API_URL + "/public/stt/call/conversation", json=data)
-    except Exception as e:
-        print("Unexpected exception occurred: ", e)
+    requests.post(settings.API_URL + "/public/stt/call/conversation", json=data)
+
+
+def parse_name_entity(text):
+    # name entity recognition
+    vi_output = p.ner(text)
+
+    token_list = vi_output["sentences"][0]["tokens"]
+
+    name_list = []
+    address_list = []
+    for token in token_list:
+        if token["ner"] == "B-PER":
+            name_list.append(token["text"])
+        if "LOC" in token["ner"]:
+            address_list.append(token["text"])
+
+    return name_list, address_list
+
+
+# from vietnam_number import w2n_single, w2n_couple
+def parse_id_phone_number(text):
+    text = text.replace("KHÔNG", "0")
+    text = text.replace("MỘT", "1")
+    text = text.replace("HAI", "2")
+    text = text.replace("BA", "3")
+    text = text.replace("BỐN", "4")
+    text = text.replace("NĂM", "5")
+    text = text.replace("SÁU", "6")
+    text = text.replace("BẢY", "7")
+    text = text.replace("TÁM", "8")
+    text = text.replace("CHÍN", "9")
+
+    id_regex = "(\w ){9}"
+    phone_regex = "(\w ){10}"
+
+    start, end = re.search(id_regex, text).span()
+    id_number = text[start + 1: end]
+    start, end = re.search(phone_regex, text).span()
+    phone_number = text[start + 1: end]
+
+    return id_number, phone_number

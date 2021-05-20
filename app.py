@@ -1,9 +1,8 @@
-import sys
-
 import requests
 from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS, cross_origin
 
+from config import settings
 from utils import (
     preprocess,
     process_audio_sentence,
@@ -53,6 +52,9 @@ def uploadFile():
     for left_sen, right_sen in list_sentences:
         process_audio_sentence(left_sen, 1, call_id)
         process_audio_sentence(right_sen, 2, call_id)
+
+    # stop a call
+    stop_call()
 
     return jsonify(result="success")
 
@@ -112,7 +114,7 @@ def stop_call():
         # "sentiment": str(sentiment[0][0]),
         # "topic": topic
     }
-    requests.post(API_URL + "/stt-demo/stop-call", json=data)
+    requests.post(settings.API_URL + "/stt-demo/stop-call", json=data)
     return ""
 
 
@@ -121,4 +123,3 @@ if __name__ == "__main__":
     app.config["TEMPLATES_AUTO_RELOAD"] = True
     app.run(host="0.0.0.0", port=5001, ssl_context=("cert.pem", "key.pem"))
     # app.run(host='0.0.0.0', port=5001)
-
