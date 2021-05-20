@@ -27,6 +27,8 @@ gunicorn==20.1.0
     # via -r requirements.in
 h11==0.12.0
     # via uvicorn
+httptools==0.2.0
+    # via -r requirements.in
 idna==2.10
     # via requests
 itsdangerous==2.0.1

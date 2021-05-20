@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     STT_API_KEY = env.str("STT_API_KEY", "")
     API_URL = env.str("BACKEND_URL", "http://localhost:5000/api")
     UPLOAD_DIR = env.str("UPLOAD_DIR", "upload")
+    CACHE_DIR = env.str("CACHE_DIR", "cache")
 
 
 settings = Settings()

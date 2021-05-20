@@ -13,7 +13,7 @@ from trankit import Pipeline
 
 from .config import settings
 
-p = Pipeline("vietnamese")
+p = Pipeline(lang="vietnamese", gpu=False, cache_dir=settings.CACHE_DIR)
 
 
 def upload_file() -> str:

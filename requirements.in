@@ -8,3 +8,4 @@ environs
 gunicorn
 uvicorn
 uvloop
+httptools
