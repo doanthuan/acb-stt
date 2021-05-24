@@ -5,6 +5,7 @@ from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS, cross_origin
 
 from .config import settings
+from .exceptions import APIException
 from .utils import (
     extract_identity_info,
     preprocess,
@@ -12,8 +13,6 @@ from .utils import (
     start_call,
     upload_file,
 )
-
-from .exceptions import APIException
 
 # from models.train_sentiment.DataSource import normalize_text
 # from correct_spell import get_best_sentence
@@ -32,9 +31,11 @@ app = Flask(__name__, template_folder="./templates")
 cors = CORS(app)
 app.config["CORS_HEADERS"] = "Content-Type"
 
+
 @app.handle_exception(APIException)
 def handle_error(e):
     return jsonify(e.to_dict())
+
 
 @app.route("/")
 def main():
@@ -57,10 +58,12 @@ def uploadFile():
 
     # preprocess, split audio by sentences
     list_sentences = preprocess(filename)
-    customer_text_sum = ''
+    customer_text_sum = ""
     for left_sen, right_sen in list_sentences:
         process_audio_sentence(left_sen, 1, call_id)
-        customer_text_sum += ' '+ process_audio_sentence(right_sen, 2, call_id, customer_text_sum)
+        customer_text_sum += " " + process_audio_sentence(
+            right_sen, 2, call_id, customer_text_sum
+        )
 
     # stop a call
     stop_call()
