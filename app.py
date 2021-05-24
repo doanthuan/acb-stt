@@ -31,11 +31,9 @@ app = Flask(__name__, template_folder="./templates")
 cors = CORS(app)
 app.config["CORS_HEADERS"] = "Content-Type"
 
-
-# @app.handle_exception(APIException)
-# def handle_error(e):
-#     return jsonify(e.to_dict())
-
+@app.errorhandler(APIException)
+def handle_error(e):
+    return jsonify(e.to_dict())
 
 @app.route("/")
 def main():
