@@ -4,9 +4,9 @@ import requests
 from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS, cross_origin
 
-from .config import settings
-from .exceptions import APIException
-from .utils import (
+from config import settings
+from exceptions import APIException
+from utils import (
     extract_identity_info,
     preprocess,
     process_audio_sentence,
@@ -32,9 +32,9 @@ cors = CORS(app)
 app.config["CORS_HEADERS"] = "Content-Type"
 
 
-@app.handle_exception(APIException)
-def handle_error(e):
-    return jsonify(e.to_dict())
+# @app.handle_exception(APIException)
+# def handle_error(e):
+#     return jsonify(e.to_dict())
 
 
 @app.route("/")
@@ -115,5 +115,6 @@ def read_identity_info() -> Dict:
 if __name__ == "__main__":
     app.jinja_env.auto_reload = True
     app.config["TEMPLATES_AUTO_RELOAD"] = True
-    app.run(host="0.0.0.0", port=5001, ssl_context=("cert.pem", "key.pem"))
+    app.run(host="0.0.0.0", port=5001, ssl_context=("cert.pem", "key.pem"), debug = True)
+    #app.run(debug = True)
     # app.run(host='0.0.0.0', port=5001)

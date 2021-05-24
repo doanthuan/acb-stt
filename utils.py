@@ -11,7 +11,7 @@ import requests
 from flask import request
 from trankit import Pipeline
 
-from .config import settings
+from config import settings
 
 p = Pipeline(lang="vietnamese", gpu=False, cache_dir=settings.CACHE_DIR)
 
@@ -30,8 +30,8 @@ def preprocess(filename: str) -> Iterator[Tuple[str, str]]:
     # os.system('ffmpeg -i %s -ar 16000 -ac 1 -ab 256000 upload/upload.wav -y' % filename)
     infile_path = path.join(settings.UPLOAD_DIR, filename)
     format_file = path.join(settings.UPLOAD_DIR, f"format_{filename}")
-    left_file = path.join(settings.UPLOAD_DIR, f"left_{format_file}")
-    right_file = path.join(settings.UPLOAD_DIR, f"right_{format_file}")
+    left_file = path.join(settings.UPLOAD_DIR, f"left_{filename}")
+    right_file = path.join(settings.UPLOAD_DIR, f"right_{filename}")
     # subprocess.call(['ffmpeg', '-i', "upload/"+filename, '-ar', '16000', '-ac', '1', '-ab', '256000', "upload/"+ format_file, '-y'])
     # subprocess.call(['ffmpeg', '-i', "upload/"+filename, '-ar', '16000', '-af','afftdn=nf=-20', "upload/"+ format_file, '-y'])
     subprocess.call(
@@ -76,7 +76,11 @@ def process_audio_sentence(input_sen, channel, call_id, customer_text_sum = '') 
     # convert speech to text by using dinosoft api
     text = speech_to_text(input_sen)
 
-    extract_info = {}
+    if not text:
+        return ""
+
+    extract_info_line = {}
+    extract_info_sum = {}
     if channel == 2: #only extract info from customer channel
 
         # extract info from this sentence
@@ -204,21 +208,23 @@ def speech_to_text(filename: str) -> str:
     data = {"apiKey": settings.STT_API_KEY}
     files = {"file": open(audio_file, "rb")}
     r = requests.post(settings.API_STT, files=files, data=data)
+    #print(data)
 
     if not r.ok:
         print("Something went wrong!")
+        print(r)
         return ""
 
     print("Upload completed successfully!")
     response = r.json()
     result = parse_stt_result(response)
-    print(result)
+    #print(result)
 
     return result
 
 
 def parse_stt_result(json_result: Dict) -> str:
-    if len(json_result["Model"]) == 0:
+    if not json_result["Model"]:
         print("STT Engine returns nothings")
         return ""
 
@@ -247,7 +253,7 @@ def start_call() -> None:
 
     r = requests.post(settings.API_URL + "/public/stt/call/start", json=data)
     json_result = r.json()
-    return json_result["model"]["id"]
+    return json_result
 
 
 def send_msg(
