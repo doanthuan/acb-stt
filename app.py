@@ -1,9 +1,17 @@
+from typing import Dict
+
 import requests
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS, cross_origin
 
 from .config import settings
-from .utils import preprocess, process_audio_sentence, start_call, upload_file
+from .utils import (
+    extract_identity_info,
+    preprocess,
+    process_audio_sentence,
+    start_call,
+    upload_file,
+)
 
 # from models.train_sentiment.DataSource import normalize_text
 # from correct_spell import get_best_sentence
@@ -17,6 +25,8 @@ from .utils import preprocess, process_audio_sentence, start_call, upload_file
 
 
 app = Flask(__name__, template_folder="./templates")
+
+
 cors = CORS(app)
 app.config["CORS_HEADERS"] = "Content-Type"
 
@@ -84,6 +94,14 @@ def stop_call():
     }
     requests.post(settings.API_URL + "/stt-demo/stop-call", json=data)
     return ""
+
+
+@app.route("/identity", methods=["POST"])
+def read_identity_info() -> Dict:
+    text = request.form.get("text", "")
+    if text == "":
+        raise ValueError("`text` field is required")
+    return extract_identity_info(text)
 
 
 if __name__ == "__main__":

@@ -106,6 +106,17 @@ def extract_customer_info(text):
 
     return extract_info
 
+def extract_identity_info(text: str) -> Dict:
+    name_list, address_list = parse_name_entity(text)
+    id_number, phone_number = parse_id_phone_number(text)
+    return {
+        "name": name_list,
+        "address": address_list,
+        "id_number": id_number,
+        "phone_number": phone_number,
+    }
+
+
 def do_vad_split(infile: str) -> List[str]:
 
     output = subprocess.run(
@@ -278,22 +289,39 @@ def parse_name_entity(text: str) -> Tuple[List[str], List[str]]:
 
 # from vietnam_number import w2n_single, w2n_couple
 def parse_id_phone_number(text) -> Tuple[str, str]:
-    text = text.replace("KHÔNG", "0")
-    text = text.replace("MỘT", "1")
-    text = text.replace("HAI", "2")
-    text = text.replace("BA", "3")
-    text = text.replace("BỐN", "4")
-    text = text.replace("NĂM", "5")
-    text = text.replace("SÁU", "6")
-    text = text.replace("BẢY", "7")
-    text = text.replace("TÁM", "8")
-    text = text.replace("CHÍN", "9")
+    numeric_mappings = {
+        "không": "0",
+        "một": "1",
+        "hai": "2",
+        "ba": "3",
+        "bốn": "4",
+        "năm": "5",
+        "sáu": "6",
+        "bảy": "7",
+        "tám": "8",
+        "chín": "9",
+    }
 
-    # id_regex = r"(\w ){9}"
-    # phone_regex = r"(\w ){10}"
+    for pattern, repl in numeric_mappings.items():
+        text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
 
-    id_number = extract_info(r"(\w ){9}", text)
-    phone_number = extract_info(r"(\w ){10}", text)
+    # trim all the space character
+    text = re.sub(r"\s", "", text)
+
+    # regex to match phone number in VN (as standard)
+    PHONE_REGEX = r"(0?)(3[2-9]|5[6|8|9]|7[0|6-9]|8[0-6|8|9]|9[0-4|6-9])\d{7,8}"
+
+    # regex to match ID number (new format)
+    ID_REGEX = r"0([0-8]\d|9[0-6])\d{9}"
+
+    # regex to match ID number (old format)
+    ID_REGEX_OLD = r"(0[1-8]\d|09[0-25]|[1-2]\d{2}|3[0-8]\d)\d{6}"
+
+    id_number = extract_info(ID_REGEX, text)
+    if id_number == "":
+        id_number = extract_info(ID_REGEX_OLD, text)
+
+    phone_number = extract_info(PHONE_REGEX, text)
 
     return id_number, phone_number
 
