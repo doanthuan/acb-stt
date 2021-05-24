@@ -13,6 +13,8 @@ from .utils import (
     upload_file,
 )
 
+from .exceptions import APIException
+
 # from models.train_sentiment.DataSource import normalize_text
 # from correct_spell import get_best_sentence
 # from models import predict_topic
@@ -30,6 +32,9 @@ app = Flask(__name__, template_folder="./templates")
 cors = CORS(app)
 app.config["CORS_HEADERS"] = "Content-Type"
 
+@app.handle_exception(APIException)
+def handle_error(e):
+    return jsonify(e.to_dict())
 
 @app.route("/")
 def main():
@@ -100,7 +105,7 @@ def stop_call():
 def read_identity_info() -> Dict:
     text = request.form.get("text", "")
     if text == "":
-        raise ValueError("`text` field is required")
+        raise APIException("`text` field is required")
     return extract_identity_info(text)
 
 
