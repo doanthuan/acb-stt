@@ -42,9 +42,10 @@ def uploadFile():
 
     # preprocess, split audio by sentences
     list_sentences = preprocess(filename)
+    customer_text_sum = ''
     for left_sen, right_sen in list_sentences:
         process_audio_sentence(left_sen, 1, call_id)
-        process_audio_sentence(right_sen, 2, call_id)
+        customer_text_sum += ' '+ process_audio_sentence(right_sen, 2, call_id, customer_text_sum)
 
     # stop a call
     stop_call()

@@ -72,21 +72,39 @@ def preprocess(filename: str) -> Iterator[Tuple[str, str]]:
     return list_sentences
 
 
-def process_audio_sentence(input_sen, channel, call_id) -> None:
+def process_audio_sentence(input_sen, channel, call_id, customer_text_sum = '') -> None:
     # convert speech to text by using dinosoft api
     text = speech_to_text(input_sen)
 
-    # TODO: keyword detection + post actions if keyword matched
+    extract_info = {}
+    if channel == 2: #only extract info from customer channel
 
-    # TODO: name entity recoginition
+        # extract info from this sentence
+        extract_info_line = extract_customer_info(text)
+
+        # extract info from up to now customer conversation
+        extract_info_sum = extract_customer_info(customer_text_sum +' '+ text)
+
+
+    # get result and push web socket to GUI display in dialog
+    send_msg(text, channel, call_id, extract_info_line, extract_info_sum)
+
+    return text
+
+def extract_customer_info(text):
+    # name entity recoginition
     name_list, address_list = parse_name_entity(text)
 
-    # TODO: cmnd, sdt
+    # parse cmnd, sdt
     id_number, phone_number = parse_id_phone_number(text)
 
-    # TODO: get result and push web socket to GUI display in dialog
-    send_msg(text, channel, call_id, name_list, address_list, id_number, phone_number)
+    extract_info = {}
+    extract_info['nameList'] = name_list
+    extract_info['addressList'] = address_list
+    extract_info['idNumber'] = id_number
+    extract_info['phoneNumber'] = phone_number
 
+    return extract_info
 
 def do_vad_split(infile: str) -> List[str]:
 
@@ -225,10 +243,8 @@ def send_msg(
     msg: str = None,
     channel: int = None,
     call_id: int = None,
-    name_list: List[str] = None,
-    address_list: List[str] = None,
-    id_number: str = None,
-    phone_number: str = None,
+    extract_info_line: Dict = None,
+    extract_info_sum: Dict = None,
 ) -> None:
     data = {
         "callId": call_id,
@@ -236,10 +252,8 @@ def send_msg(
         "textContent": msg,
         "audioPath": "/audio/test",
         "startTime": str(datetime.date(datetime.now())),
-        "nameList": name_list,
-        "addressList": address_list,
-        "idNumber": id_number,
-        "phoneNumber": phone_number,
+        "extractInfoLine": extract_info_line,
+        "extractInfoSum": extract_info_sum,
     }
 
     requests.post(settings.API_URL + "/public/stt/call/conversation", json=data)
