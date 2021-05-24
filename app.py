@@ -32,7 +32,7 @@ cors = CORS(app)
 app.config["CORS_HEADERS"] = "Content-Type"
 
 
-@app.handle_exception(APIException)
+@app.errorhandler(APIException)
 def handle_error(e):
     return jsonify(e.to_dict())
 
