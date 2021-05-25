@@ -1,4 +1,5 @@
 import glob
+import os.path
 import os
 import re
 import subprocess
@@ -6,6 +7,7 @@ import timeit
 from datetime import datetime
 from os import path
 from typing import Dict, Iterator, List, Tuple
+from marshmallow.utils import pprint
 
 import requests
 from flask import request
@@ -74,7 +76,10 @@ def preprocess(filename: str) -> Iterator[Tuple[str, str]]:
 
 def process_audio_sentence(input_sen, channel, call_id, customer_text_sum = '') -> None:
     # convert speech to text by using dinosoft api
-    text = speech_to_text(input_sen)
+    if path.exists(input_sen):
+        text = speech_to_text(input_sen)
+    else:
+        text = input_sen
 
     if not text:
         return ""
@@ -85,9 +90,13 @@ def process_audio_sentence(input_sen, channel, call_id, customer_text_sum = '') 
 
         # extract info from this sentence
         extract_info_line = extract_customer_info(text)
+        print("extract_info_line:")
+        pprint(extract_info_line)
 
         # extract info from up to now customer conversation
         extract_info_sum = extract_customer_info(customer_text_sum +' '+ text)
+        print("extract_info_sum:")
+        pprint(extract_info_sum)
 
 
     # get result and push web socket to GUI display in dialog
