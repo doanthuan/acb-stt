@@ -286,6 +286,10 @@ def send_msg(
 
 
 def parse_name_entity(text: str) -> Tuple[List[str], List[str]]:
+    text = text.upper()
+    text = num_mapping(text)
+    print(text)
+
     # name entity recognition
     vi_output = p.ner(text)
 
@@ -301,9 +305,7 @@ def parse_name_entity(text: str) -> Tuple[List[str], List[str]]:
 
     return name_list, address_list
 
-
-# from vietnam_number import w2n_single, w2n_couple
-def parse_id_phone_number(text) -> Tuple[str, str]:
+def num_mapping(text):
     numeric_mappings = {
         "không": "0",
         "một": "1",
@@ -319,6 +321,13 @@ def parse_id_phone_number(text) -> Tuple[str, str]:
 
     for pattern, repl in numeric_mappings.items():
         text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
+
+    return text
+
+# from vietnam_number import w2n_single, w2n_couple
+def parse_id_phone_number(text) -> Tuple[str, str]:
+
+    text = num_mapping(text)
 
     # trim all the space character
     text = re.sub(r"\s", "", text)

@@ -7,5 +7,4 @@ pydantic
 environs
 gunicorn
 uvicorn
-uvloop
 httptools

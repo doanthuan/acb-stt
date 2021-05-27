@@ -18,8 +18,9 @@ call_id = start_call()
 
 right_sentences_text = [
     "xin chào, tên tôi là Đoàn Vũ Thuận",
-    "chứng minh nhân dân số không hai bốn ",
-    "không một năm bốn ba sáu địa chỉ nhà tôi năm chín hai xẹt một nguyễn văn quá quận mười hai",
+    "căn cước số không hai bốn ",
+    #"không một năm bốn ba sáu địa chỉ nhà tôi năm chín hai xẹt một đường nguyễn văn quá quận mười hai",
+    "không một năm bốn ba sáu địa chỉ nhà tôi 592 đường nguyễn văn quá quận 12",
     "số điện thoại của tôi không chín không hai bảy hai bảy hai ba một",
     ]
 
