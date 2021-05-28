@@ -1,5 +1,4 @@
 import glob
-import os.path
 import os
 import re
 import subprocess
@@ -7,10 +6,10 @@ import timeit
 from datetime import datetime
 from os import path
 from typing import Dict, Iterator, List, Tuple
-from marshmallow.utils import pprint
 
 import requests
 from flask import request
+from marshmallow.utils import pprint
 from trankit import Pipeline
 
 from config import settings
@@ -74,7 +73,7 @@ def preprocess(filename: str) -> Iterator[Tuple[str, str]]:
     return list_sentences
 
 
-def process_audio_sentence(input_sen, channel, call_id, customer_text_sum = '') -> None:
+def process_audio_sentence(input_sen, channel, call_id, customer_text_sum="") -> str:
     # convert speech to text by using dinosoft api
     if path.exists(input_sen):
         text = speech_to_text(input_sen)
@@ -86,7 +85,7 @@ def process_audio_sentence(input_sen, channel, call_id, customer_text_sum = '') 
 
     extract_info_line = {}
     extract_info_sum = {}
-    if channel == 2: #only extract info from customer channel
+    if channel == 2:  # only extract info from customer channel
 
         # extract info from this sentence
         extract_info_line = extract_customer_info(text)
@@ -94,15 +93,15 @@ def process_audio_sentence(input_sen, channel, call_id, customer_text_sum = '') 
         pprint(extract_info_line)
 
         # extract info from up to now customer conversation
-        extract_info_sum = extract_customer_info(customer_text_sum +' '+ text)
+        extract_info_sum = extract_customer_info(customer_text_sum + " " + text)
         print("extract_info_sum:")
         pprint(extract_info_sum)
-
 
     # get result and push web socket to GUI display in dialog
     send_msg(text, channel, call_id, extract_info_line, extract_info_sum)
 
     return text
+
 
 def extract_customer_info(text):
     # name entity recoginition
@@ -112,12 +111,13 @@ def extract_customer_info(text):
     id_number, phone_number = parse_id_phone_number(text)
 
     extract_info = {}
-    extract_info['nameList'] = name_list
-    extract_info['addressList'] = address_list
-    extract_info['idNumber'] = id_number
-    extract_info['phoneNumber'] = phone_number
+    extract_info["nameList"] = name_list
+    extract_info["addressList"] = address_list
+    extract_info["idNumber"] = id_number
+    extract_info["phoneNumber"] = phone_number
 
     return extract_info
+
 
 def extract_identity_info(text: str) -> Dict:
     name_list, address_list = parse_name_entity(text)
@@ -217,7 +217,7 @@ def speech_to_text(filename: str) -> str:
     data = {"apiKey": settings.STT_API_KEY}
     files = {"file": open(audio_file, "rb")}
     r = requests.post(settings.API_STT, files=files, data=data)
-    #print(data)
+    # print(data)
 
     if not r.ok:
         print("Something went wrong!")
@@ -227,7 +227,7 @@ def speech_to_text(filename: str) -> str:
     print("Upload completed successfully!")
     response = r.json()
     result = parse_stt_result(response)
-    #print(result)
+    # print(result)
 
     return result
 
@@ -305,6 +305,7 @@ def parse_name_entity(text: str) -> Tuple[List[str], List[str]]:
 
     return name_list, address_list
 
+
 def num_mapping(text):
     numeric_mappings = {
         "không": "0",
@@ -323,6 +324,7 @@ def num_mapping(text):
         text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
 
     return text
+
 
 # from vietnam_number import w2n_single, w2n_couple
 def parse_id_phone_number(text) -> Tuple[str, str]:
