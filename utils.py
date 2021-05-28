@@ -12,7 +12,7 @@ from flask import request
 from marshmallow.utils import pprint
 from trankit import Pipeline
 
-from config import settings
+from .config import settings
 
 p = Pipeline(lang="vietnamese", gpu=False, cache_dir=settings.CACHE_DIR)
 
@@ -214,9 +214,9 @@ def speech_to_text(filename: str) -> str:
     result = ""
     audio_file = path.join(path.dirname(path.realpath(__file__)), filename)
 
-    data = {"apiKey": settings.STT_API_KEY}
+    # data = {"apiKey": settings.STT_API_KEY}
     files = {"file": open(audio_file, "rb")}
-    r = requests.post(settings.API_STT, files=files, data=data)
+    r = requests.post(settings.API_STT, files=files)  # , data=data)
     # print(data)
 
     if not r.ok:
@@ -233,14 +233,15 @@ def speech_to_text(filename: str) -> str:
 
 
 def parse_stt_result(json_result: Dict) -> str:
-    if not json_result["Model"]:
+    if not json_result["results"]:
         print("STT Engine returns nothings")
         return ""
-
-    result = []
-    for segment in json_result["Model"]:
-        # multiple transcripts in hypotheses ???
-        result.append(segment["result"]["hypotheses"][0]["transcript"])
+    
+    result = json_result["results"]
+    # result = []
+    # for segment in json_result["Model"]:
+    #     # multiple transcripts in hypotheses ???
+    #     result.append(segment["result"]["hypotheses"][0]["transcript"])
 
     return " ".join(result)
 
