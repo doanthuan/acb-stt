@@ -12,7 +12,7 @@ from flask import request
 from marshmallow.utils import pprint
 from trankit import Pipeline
 
-from .config import settings
+from config import settings
 
 p = Pipeline(lang="vietnamese", gpu=False, cache_dir=settings.CACHE_DIR)
 
@@ -236,7 +236,7 @@ def parse_stt_result(json_result: Dict) -> str:
     if not json_result["results"]:
         print("STT Engine returns nothings")
         return ""
-    
+
     result = json_result["results"]
     # result = []
     # for segment in json_result["Model"]:
@@ -308,17 +308,18 @@ def parse_name_entity(text: str) -> Tuple[List[str], List[str]]:
 
 
 def num_mapping(text):
+    # add leading space to avoid replace the match inside of the words such as agribank
     numeric_mappings = {
-        "không": "0",
-        "một": "1",
-        "hai": "2",
-        "ba": "3",
-        "bốn": "4",
-        "năm": "5",
-        "sáu": "6",
-        "bảy": "7",
-        "tám": "8",
-        "chín": "9",
+        " không": " 0",
+        " một": " 1",
+        " hai": " 2",
+        " ba": " 3",
+        " bốn": " 4",
+        " năm": " 5",
+        " sáu": " 6",
+        " bảy": " 7",
+        " tám": " 8",
+        " chín": " 9",
     }
 
     for pattern, repl in numeric_mappings.items():
@@ -332,17 +333,25 @@ def parse_id_phone_number(text) -> Tuple[str, str]:
 
     text = num_mapping(text)
 
-    # trim all the space character
-    text = re.sub(r"\s", "", text)
+    # Remove all the words affect the pattern matching
+    BAD_WORDS = [r"\s", "ạ", "dạ", "rồi"]
+    for word in BAD_WORDS:
+        text = re.sub(word, "", text)
+
+    print(f"start extracting from text: {text}")
+
+    # Extract the identity information by pattern matching
+    # adding a single non-numeric character to avoid the case that
+    # longer pattern would cover the shorter pattern leads to wrong extraction
 
     # regex to match phone number in VN (as standard)
-    PHONE_REGEX = r"(0?)(3[2-9]|5[6|8|9]|7[0|6-9]|8[0-6|8|9]|9[0-4|6-9])\d{7,8}"
+    PHONE_REGEX = r"(0?)(3[2-9]|5[6|8|9]|7[0|6-9]|8[0-6|8|9]|9[0-4|6-9])\d{7,8}[^\d]"
 
     # regex to match ID number (new format)
-    ID_REGEX = r"0([0-8]\d|9[0-6])\d{9}"
+    ID_REGEX = r"0([0-8]\d|9[0-6])\d{9}[^\d]"
 
     # regex to match ID number (old format)
-    ID_REGEX_OLD = r"(0[1-8]\d|09[0-25]|[1-2]\d{2}|3[0-8]\d)\d{6}"
+    ID_REGEX_OLD = r"(0[1-8]\d|09[0-25]|[1-2]\d{2}|3[0-8]\d)\d{6}[^\d]"
 
     id_number = extract_info(ID_REGEX, text)
     if id_number == "":
@@ -358,5 +367,6 @@ def extract_info(regex: str, text: str) -> str:
     if match is None:
         return ""
 
+    # remove last non-numeric character
     start, end = match.span()
-    return text[start + 1 : end]  # noqa: E203
+    return text[start : end - 1]  # noqa: E203
