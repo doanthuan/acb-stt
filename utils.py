@@ -89,15 +89,16 @@ def process_audio_sentence(input_sen, channel, call_id, customer_text_sum="") ->
 
         # extract info from this sentence
         extract_info_line = extract_customer_info(text)
-        print("extract_info_line:")
-        pprint(extract_info_line)
+        # print("extract_info_line:")
+        # pprint(extract_info_line)
 
         # extract info from up to now customer conversation
         extract_info_sum = extract_customer_info(customer_text_sum + " " + text)
-        print("extract_info_sum:")
-        pprint(extract_info_sum)
+        # print("extract_info_sum:")
+        # pprint(extract_info_sum)
 
     # get result and push web socket to GUI display in dialog
+    print("send_msg")
     send_msg(text, channel, call_id, extract_info_line, extract_info_sum)
 
     return text
@@ -111,8 +112,8 @@ def extract_customer_info(text):
     id_number, phone_number = parse_id_phone_number(text)
 
     extract_info = {}
-    extract_info["nameList"] = name_list
-    extract_info["addressList"] = address_list
+    extract_info["nameList"] = ','.join(name_list)
+    extract_info["addressList"] = ','.join(address_list)
     extract_info["idNumber"] = id_number
     extract_info["phoneNumber"] = phone_number
 
@@ -224,8 +225,9 @@ def speech_to_text(filename: str) -> str:
         print(r)
         return ""
 
-    print("Upload completed successfully!")
+    #print("Upload completed successfully!")
     response = r.json()
+    #print(response)
     result = parse_stt_result(response)
     # print(result)
 
@@ -233,11 +235,11 @@ def speech_to_text(filename: str) -> str:
 
 
 def parse_stt_result(json_result: Dict) -> str:
-    if not json_result["results"]:
+    if not json_result["result"]:
         print("STT Engine returns nothings")
         return ""
 
-    result = json_result["results"]
+    result = json_result["result"]
     # result = []
     # for segment in json_result["Model"]:
     #     # multiple transcripts in hypotheses ???
@@ -256,14 +258,14 @@ def start_call() -> None:
         "caller": "customer",
         "agentId": 1102,
         "isOutbound": True,
-        "startTime": str(datetime.now()),
+        #"startTime": datetime.timestamp(datetime.now()),
         "endTime": "",
         "criticalScore": 1,
     }
 
     r = requests.post(settings.API_URL + "/public/stt/call/start", json=data)
     json_result = r.json()
-    return json_result
+    return json_result['model']['id']
 
 
 def send_msg(
@@ -287,9 +289,9 @@ def send_msg(
 
 
 def parse_name_entity(text: str) -> Tuple[List[str], List[str]]:
-    text = text.upper()
+    #text = text.upper()
     text = num_mapping(text)
-    print(text)
+    #print(text)
 
     # name entity recognition
     vi_output = p.ner(text)
@@ -339,7 +341,7 @@ def parse_id_phone_number(text) -> Tuple[str, str]:
     for word in BAD_WORDS:
         text = re.sub(word, "", text)
 
-    print(f"start extracting from text: {text}")
+    #print(f"start extracting from text: {text}")
 
     # Extract the identity information by pattern matching
     # adding a single non-numeric character to avoid the case that

@@ -6,8 +6,8 @@ from flask_cors import CORS, cross_origin
 
 from exceptions import APIException
 
-from .config import settings
-from .utils import (extract_identity_info, preprocess, process_audio_sentence,
+from config import settings
+from utils import (extract_identity_info, preprocess, process_audio_sentence,
                     start_call, upload_file)
 
 # from models.train_sentiment.DataSource import normalize_text
