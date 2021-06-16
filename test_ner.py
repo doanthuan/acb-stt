@@ -11,17 +11,19 @@ right_sentences_text = [
     "dạ vâng số tài khoản không một không một không một một bảy bốn không bảy",
     "một không một một bảy bốn không bảy",
     "phan thị là",
-    "em là nguyễn văn trường",
+    "em là nguyễn văn trưởng",
     "một sáu bốn một ạ",
     "không ba ba ạ",
     "sáu không ạ",
     "vâng ạ em là ngân hàng agribank",
 ]
 
+#text = " . ".join(right_sentences_text)
 #text = text.upper()
-#vi_output = p.ner(" ".join(right_sentences_text))
-vi_output = p.ner("TÔI TÊN LÀ KHỔNG VĂN CHIẾN ĐỊA CHỈ NHÀ Ở")
+text = "em là nguyễn văn trường"
+vi_output = p.ner(text)
+#vi_output = p.ner("TÔI TÊN LÀ KHỔNG VĂN CHIẾN ĐỊA CHỈ NHÀ Ở")
 
 
 token_list = vi_output["sentences"][0]["tokens"]
-print(vi_output)
+print(token_list)

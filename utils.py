@@ -291,20 +291,23 @@ def send_msg(
 def parse_name_entity(text: str) -> Tuple[List[str], List[str]]:
     #text = text.upper()
     text = num_mapping(text)
-    #print(text)
+    print(text)
 
     # name entity recognition
     vi_output = p.ner(text)
-
-    token_list = vi_output["sentences"][0]["tokens"]
-
     name_list = []
     address_list = []
-    for token in token_list:
-        if token["ner"] == "B-PER":
-            name_list.append(token["text"])
-        if "LOC" in token["ner"]:
-            address_list.append(token["text"])
+
+    #token_list = vi_output["sentences"][0]["tokens"]
+    sentences = vi_output["sentences"]
+    for sentence in sentences:
+        for token in sentence['tokens']:
+            if token["ner"] == "B-PER":
+                name_list.append(token["text"])
+            if "LOC" in token["ner"]:
+                address_list.append(token["text"])
+
+        
 
     return name_list, address_list
 
