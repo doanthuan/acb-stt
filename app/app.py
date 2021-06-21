@@ -4,10 +4,9 @@ import requests
 from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS, cross_origin
 
-from exceptions import APIException
-
-from config import settings
-from utils import (extract_identity_info, preprocess, process_audio_sentence,
+from .config import settings
+from .exceptions import APIException
+from .utils import (extract_identity_info, preprocess, process_audio_sentence,
                     start_call, upload_file)
 
 # from models.train_sentiment.DataSource import normalize_text
@@ -20,10 +19,7 @@ from utils import (extract_identity_info, preprocess, process_audio_sentence,
 # filename = "./models/sentiment_model.joblib"
 # clf = joblib.load(filename)
 
-
 app = Flask(__name__, template_folder="./templates")
-
-
 cors = CORS(app)
 app.config["CORS_HEADERS"] = "Content-Type"
 
@@ -41,30 +37,31 @@ def main():
 @cross_origin()
 @app.route("/uploadfile", methods=["POST"])
 def uploadFile():
-    # try:
+    try:
 
-    # except:
-    #     print("Unexpected error:", sys.exc_info()[0])
-    #     output = ""
+        filename = upload_file()
 
-    filename = upload_file()
+        # start a call
+        call_id = start_call()
+        if call_id is None:
+            raise ValueError("call_id cannot be None")
 
-    # start a call
-    call_id = start_call()
+        # preprocess, split audio by sentences
+        list_sentences = preprocess(filename)
+        customer_text_sum = ""
+        for left_sen, right_sen in list_sentences:
+            process_audio_sentence(left_sen, 1, call_id)
+            customer_text_sum += "." + process_audio_sentence(
+                right_sen, 2, call_id, customer_text_sum
+            )
 
-    # preprocess, split audio by sentences
-    list_sentences = preprocess(filename)
-    customer_text_sum = ""
-    for left_sen, right_sen in list_sentences:
-        process_audio_sentence(left_sen, 1, call_id)
-        customer_text_sum += "." + process_audio_sentence(
-            right_sen, 2, call_id, customer_text_sum
-        )
+        # stop a call
+        stop_call(call_id)
 
-    # stop a call
-    stop_call()
-
-    return jsonify(result="success")
+        return jsonify(result="success")
+    except Exception as e:
+        print("Unexpected error:", e)
+        raise e
 
 
 @app.route("/start-call", methods=["GET"])
@@ -74,7 +71,7 @@ def start_call_test():
 
 
 @app.route("/stop-call", methods=["POST"])
-def stop_call():
+def stop_call(call_id: int):
     # read file content
 
     # # save conversation
@@ -92,7 +89,7 @@ def stop_call():
     # print(str(sentiment[0][0])+","+topic)
 
     data = {
-        "callId": 100,
+        "callId": call_id,
         # "sentiment": str(sentiment[0][0]),
         # "topic": topic
     }

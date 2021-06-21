@@ -2,10 +2,15 @@ FROM python:3.8-slim-buster
 
 WORKDIR /
 
-COPY . /app
+COPY app /app
+
+COPY requirements.txt /app/requirements.txt
+
+COPY deploy/gunicorn_conf.py /
+COPY deploy/start.sh /
 
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-RUN chmod +x /app/start.sh
+RUN chmod +x /start.sh
 
-CMD ["/app/start.sh"]
+CMD ["/start.sh"]

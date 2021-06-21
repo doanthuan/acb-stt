@@ -9,10 +9,9 @@ from typing import Dict, Iterator, List, Tuple
 
 import requests
 from flask import request
-from marshmallow.utils import pprint
 from trankit import Pipeline
 
-from config import settings
+from .config import settings
 
 p = Pipeline(lang="vietnamese", gpu=False, cache_dir=settings.CACHE_DIR)
 
@@ -112,8 +111,8 @@ def extract_customer_info(text):
     id_number, phone_number = parse_id_phone_number(text)
 
     extract_info = {}
-    extract_info["nameList"] = ','.join(name_list)
-    extract_info["addressList"] = ','.join(address_list)
+    extract_info["nameList"] = ",".join(name_list)
+    extract_info["addressList"] = ",".join(address_list)
     extract_info["idNumber"] = id_number
     extract_info["phoneNumber"] = phone_number
 
@@ -225,9 +224,9 @@ def speech_to_text(filename: str) -> str:
         print(r)
         return ""
 
-    #print("Upload completed successfully!")
+    # print("Upload completed successfully!")
     response = r.json()
-    #print(response)
+    # print(response)
     result = parse_stt_result(response)
     # print(result)
 
@@ -258,14 +257,14 @@ def start_call() -> None:
         "caller": "customer",
         "agentId": 1102,
         "isOutbound": True,
-        #"startTime": datetime.timestamp(datetime.now()),
+        # "startTime": datetime.timestamp(datetime.now()),
         "endTime": "",
         "criticalScore": 1,
     }
 
     r = requests.post(settings.API_URL + "/public/stt/call/start", json=data)
     json_result = r.json()
-    return json_result['model']['id']
+    return json_result["model"]["id"]
 
 
 def send_msg(
@@ -289,7 +288,7 @@ def send_msg(
 
 
 def parse_name_entity(text: str) -> Tuple[List[str], List[str]]:
-    #text = text.upper()
+    # text = text.upper()
     text = num_mapping(text)
     print(text)
 
@@ -298,16 +297,14 @@ def parse_name_entity(text: str) -> Tuple[List[str], List[str]]:
     name_list = []
     address_list = []
 
-    #token_list = vi_output["sentences"][0]["tokens"]
+    # token_list = vi_output["sentences"][0]["tokens"]
     sentences = vi_output["sentences"]
     for sentence in sentences:
-        for token in sentence['tokens']:
+        for token in sentence["tokens"]:
             if token["ner"] == "B-PER":
                 name_list.append(token["text"])
             if "LOC" in token["ner"]:
                 address_list.append(token["text"])
-
-        
 
     return name_list, address_list
 
@@ -344,7 +341,7 @@ def parse_id_phone_number(text) -> Tuple[str, str]:
     for word in BAD_WORDS:
         text = re.sub(word, "", text)
 
-    #print(f"start extracting from text: {text}")
+    # print(f"start extracting from text: {text}")
 
     # Extract the identity information by pattern matching
     # adding a single non-numeric character to avoid the case that

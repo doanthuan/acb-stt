@@ -8,3 +8,4 @@ test/
 asset/
 cache/
 .mypy_cache
+.DS_Store

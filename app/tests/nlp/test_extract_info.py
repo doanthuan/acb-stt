@@ -1,4 +1,6 @@
-from utils import *
+from typing import Any
+
+# from app.utils import *
 
 # start a call
 # call_id = start_call()
@@ -22,22 +24,26 @@ from utils import *
 #     "sáu không ạ",
 #     "vâng ạ em là ngân hàng agribank",
 # ]
-right_sentences_text = [
-    "xin chào, tên tôi là đoàn vũ thuận",
-    "căn cước số không hai bốn ",
-    #"không một năm bốn ba sáu địa chỉ nhà tôi năm chín hai xẹt một đường nguyễn văn quá quận mười hai",
-    "không một năm bốn ba sáu địa chỉ nhà tôi 592 đường nguyễn văn quá quận 12",
-    "số điện thoại của tôi không chín không hai bảy hai bảy hai ba một",
+
+
+def test_ner(p: Any):
+    right_sentences_text = [
+        "xin chào, tên tôi là đoàn vũ thuận",
+        "căn cước số không hai bốn ",
+        # "không một năm bốn ba sáu địa chỉ nhà tôi năm chín hai xẹt một đường nguyễn văn quá quận mười hai",
+        "không một năm bốn ba sáu địa chỉ nhà tôi 592 đường nguyễn văn quá quận 12",
+        "số điện thoại của tôi không chín không hai bảy hai bảy hai ba một",
     ]
-right_sentences_text = [line.capitalize() for line in right_sentences_text]
-    
-text = " . ".join(right_sentences_text)
-#print(text)
-#text = text.upper()
-#print(extract_customer_info(text))
-#print(parse_name_entity(text))
-vi_output = p.ner(text)
-print(vi_output)
+    right_sentences_text = [line.capitalize() for line in right_sentences_text]
+
+    text = " . ".join(right_sentences_text)
+    # print(text)
+    # text = text.upper()
+    # print(extract_customer_info(text))
+    # print(parse_name_entity(text))
+    vi_output = p.ner(text)
+    print(vi_output)
+
 
 # customer_text_sum = ""
 # for right_sen in right_sentences_text:
