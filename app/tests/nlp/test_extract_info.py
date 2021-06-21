@@ -1,4 +1,4 @@
-from typing import Any
+from trankit import Pipeline
 
 # from app.utils import *
 
@@ -26,7 +26,7 @@ from typing import Any
 # ]
 
 
-def test_ner(p: Any):
+def test_ner(pipeline: Pipeline):
     right_sentences_text = [
         "xin chào, tên tôi là đoàn vũ thuận",
         "căn cước số không hai bốn ",
@@ -41,7 +41,7 @@ def test_ner(p: Any):
     # text = text.upper()
     # print(extract_customer_info(text))
     # print(parse_name_entity(text))
-    vi_output = p.ner(text)
+    vi_output = pipeline.ner(text)
     print(vi_output)
 
 

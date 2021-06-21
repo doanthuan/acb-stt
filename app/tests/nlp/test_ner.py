@@ -1,28 +1,20 @@
 from trankit import Pipeline
 
-# p = Pipeline(lang="vietnamese", gpu=True, cache_dir=settings.CACHE_DIR)
+from app.models.ner import NerType
+from app.tests.utils import extract_tokens
 
 
-def test_ner(pipeline: Pipeline):
-    # text = "120 đường hai bà trưng quận 3"
-    # right_sentences_text = [
-    #     "chị cho em hỏi chút được không ạ",
-    #     "em hôm qua chuyển tiền cho số tài khoản của phan thị là em nghi có hiện tượng lừa đảo ấy chị có thể cho em hỏi tài khoản này có hoạt động bình thường không ạ",
-    #     "dạ vâng số tài khoản không một không một không một một bảy bốn không bảy",
-    #     "một không một một bảy bốn không bảy",
-    #     "phan thị là",
-    #     "em là nguyễn văn trưởng",
-    #     "một sáu bốn một ạ",
-    #     "không ba ba ạ",
-    #     "sáu không ạ",
-    #     "vâng ạ em là ngân hàng agribank",
-    # ]
-
-    # text = " . ".join(right_sentences_text)
-    # text = text.upper()
-    text = "em là nguyễn văn trường"
+def test_ner_person(pipeline: Pipeline):
+    text = "em là Nguyễn Văn Trường"
     vi_output = pipeline.ner(text)
-    # vi_output = pipeline.ner("TÔI TÊN LÀ KHỔNG VĂN CHIẾN ĐỊA CHỈ NHÀ Ở")
+    ner_values = extract_tokens(vi_output, NerType.PERSON)
+    print(ner_values)
+    assert "Nguyễn Văn Trường" in ner_values
 
-    token_list = vi_output["sentences"][0]["tokens"]
-    print(token_list)
+
+def test_ner_loc(pipeline: Pipeline):
+    text = "120 đường Hai Bà Trưng Quận 3"
+    output = pipeline.ner(text)
+    ner_values = extract_tokens(output, NerType.LOCATION)
+    print(ner_values)
+    assert text in ner_values
