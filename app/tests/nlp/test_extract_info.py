@@ -1,4 +1,6 @@
 from trankit import Pipeline
+from app.models.ner import NerType
+from app.tests.utils import extract_tokens
 
 # from app.utils import *
 
@@ -34,15 +36,25 @@ def test_ner(pipeline: Pipeline):
         "không một năm bốn ba sáu địa chỉ nhà tôi 592 đường nguyễn văn quá quận 12",
         "số điện thoại của tôi không chín không hai bảy hai bảy hai ba một",
     ]
-    right_sentences_text = [line.capitalize() for line in right_sentences_text]
+    processed_text = []
+    for line in right_sentences_text:
+        processed_text.append(" ".join([word.capitalize() for word in
+                                        line.split()]))
+    # right_sentences_text = [line.capitalize() for line in right_sentences_text]
 
-    text = " . ".join(right_sentences_text)
+    text = " . ".join(processed_text)
     # print(text)
     # text = text.upper()
     # print(extract_customer_info(text))
     # print(parse_name_entity(text))
     vi_output = pipeline.ner(text)
     print(vi_output)
+
+    person_info = extract_tokens(vi_output, [NerType.PERSON])
+    assert "Đoàn Vũ Thuận" in person_info
+
+    loc = extract_tokens(vi_output, [NerType.I_LOCATION, NerType.B_LOCATION])
+    assert "592 Đường Nguyễn Văn Quá Quận 12" in " ".join(loc)
 
 
 # customer_text_sum = ""

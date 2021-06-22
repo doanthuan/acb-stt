@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict, Any
 
 from trankit import Pipeline
 
@@ -9,10 +9,10 @@ def create_pipeline():
     return Pipeline(lang="vietnamese", gpu=False, cache_dir=settings.CACHE_DIR)
 
 
-def extract_tokens(result, ner_type) -> List[str]:
-    tokens = result["sentences"][0]["tokens"]
+def extract_tokens(result: Dict[str, Any], ner_types: List[str]) -> List[str]:
     ner_values = []
-    for token in tokens:
-        if token["ner"] == ner_type:
-            ner_values.append(token["text"])
+    for sent in result["sentences"]:
+        for token in sent["tokens"]:
+            if token["ner"] in ner_types:
+                ner_values.append(token["text"])
     return ner_values
