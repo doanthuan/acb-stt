@@ -11,7 +11,7 @@ import requests
 from flask import request
 from marshmallow.utils import pprint
 from trankit import Pipeline
-
+import time
 from config import settings
 
 p = Pipeline(lang="vietnamese", gpu=False, cache_dir=settings.CACHE_DIR)
@@ -256,10 +256,9 @@ def join_files(file1: str, file2: str) -> None:
 def start_call() -> None:
     data = {
         "caller": "customer",
-        "agentId": 1102,
+        "agentId": "agent",
         "isOutbound": True,
         #"startTime": datetime.timestamp(datetime.now()),
-        "endTime": "",
         "criticalScore": 1,
     }
 
@@ -267,6 +266,15 @@ def start_call() -> None:
     json_result = r.json()
     return json_result['model']['id']
 
+def stop_call(call_id, audio_file):
+    data = {
+        "id": call_id,
+        # "sentiment": str(sentiment[0][0]),
+        # "topic": topic
+        "endTime": round(time.time() * 1000),
+        "audioPath": settings.SITE_URL + "/" + settings.UPLOAD_DIR+"/" + audio_file
+    }
+    requests.post(settings.API_URL + "/public/stt/call/finish", json=data)
 
 def send_msg(
     msg: str = None,
@@ -279,8 +287,8 @@ def send_msg(
         "callId": call_id,
         "line": "agent" if channel == 1 else "customer",
         "textContent": msg,
-        "audioPath": "/audio/test",
-        "startTime": str(datetime.date(datetime.now())),
+        #"audioPath": "/audio/test",
+        #"startTime": str(datetime.date(datetime.now())),
         "extractInfoLine": extract_info_line,
         "extractInfoSum": extract_info_sum,
     }

@@ -8,7 +8,7 @@ from exceptions import APIException
 
 from config import settings
 from utils import (extract_identity_info, preprocess, process_audio_sentence,
-                    start_call, upload_file)
+                    start_call, stop_call, upload_file)
 
 # from models.train_sentiment.DataSource import normalize_text
 # from correct_spell import get_best_sentence
@@ -62,7 +62,7 @@ def uploadFile():
         )
 
     # stop a call
-    stop_call()
+    stop_call(call_id, filename)
 
     return jsonify(result="success")
 
@@ -73,31 +73,31 @@ def start_call_test():
     return "success"
 
 
-@app.route("/stop-call", methods=["POST"])
-def stop_call():
-    # read file content
+# @app.route("/stop-call", methods=["POST"])
+# def stop_call():
+#     # read file content
 
-    # # save conversation
-    # f= open("conversation.txt" ,"r", encoding="utf-8")
-    # output = f.read()
-    # f.close()
+#     # # save conversation
+#     # f= open("conversation.txt" ,"r", encoding="utf-8")
+#     # output = f.read()
+#     # f.close()
 
-    # document = normalize_text(output)
-    # sentiment = clf.predict_proba([document])
+#     # document = normalize_text(output)
+#     # sentiment = clf.predict_proba([document])
 
-    # topic = predict_topic(output)
-    # topic = topic[0].replace("__label__", "")
+#     # topic = predict_topic(output)
+#     # topic = topic[0].replace("__label__", "")
 
-    # #return [output, str(sentiment[0][0]), topic]
-    # print(str(sentiment[0][0])+","+topic)
+#     # #return [output, str(sentiment[0][0]), topic]
+#     # print(str(sentiment[0][0])+","+topic)
 
-    data = {
-        "callId": 100,
-        # "sentiment": str(sentiment[0][0]),
-        # "topic": topic
-    }
-    requests.post(settings.API_URL + "/stt-demo/stop-call", json=data)
-    return ""
+#     data = {
+#         "callId": 100,
+#         # "sentiment": str(sentiment[0][0]),
+#         # "topic": topic
+#     }
+#     requests.post(settings.API_URL + "/stt-demo/stop-call", json=data)
+#     return ""
 
 
 @app.route("/identity", methods=["POST"])
@@ -111,6 +111,6 @@ def read_identity_info() -> Dict:
 if __name__ == "__main__":
     app.jinja_env.auto_reload = True
     app.config["TEMPLATES_AUTO_RELOAD"] = True
-    app.run(host="0.0.0.0", port=5001, ssl_context=("cert.pem", "key.pem"), debug=True)
+    app.run(host="0.0.0.0", port=60002, ssl_context=("cert.pem", "key.pem"), debug=True)
     # app.run(debug = True)
     # app.run(host='0.0.0.0', port=5001)

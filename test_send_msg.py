@@ -3,7 +3,7 @@ from utils import *
 #send_msg("xin chào", 2)
 msg = "xin chào"
 channel = 2
-call_id = 270
+call_id = 295
 extract_info = {}
 extract_info["nameList"] = "name_list"
 extract_info["addressList"] = "address_list"
