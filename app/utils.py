@@ -2,16 +2,17 @@ import glob
 import os
 import re
 import subprocess
+import time
 import timeit
-from datetime import datetime
 from os import path
 from typing import Dict, Iterator, List, Tuple
 
 import requests
 from flask import request
 from trankit import Pipeline
-import time
+
 from .config import settings
+
 p = Pipeline(lang="vietnamese", gpu=False, cache_dir=settings.CACHE_DIR)
 
 
@@ -211,8 +212,7 @@ def do_vad_split(infile: str) -> List[str]:
 def speech_to_text(filename: str) -> str:
 
     result = ""
-    root_path = path.dirname(path.realpath(__file__)).parent.absolute()
-    audio_file = path.join(root_path, filename)
+    audio_file = path.join(path.dirname(path.realpath(__file__)), filename)
 
     # data = {"apiKey": settings.STT_API_KEY}
     files = {"file": open(audio_file, "rb")}
@@ -264,15 +264,17 @@ def start_call() -> None:
     json_result = r.json()
     return json_result["model"]["id"]
 
+
 def stop_call(call_id, audio_file):
     data = {
         "id": call_id,
         # "sentiment": str(sentiment[0][0]),
         # "topic": topic
         "endTime": round(time.time() * 1000),
-        "audioPath": settings.SITE_URL + "/" + settings.UPLOAD_DIR+"/" + audio_file
+        "audioPath": settings.SITE_URL + "/" + settings.UPLOAD_DIR + "/" + audio_file,
     }
     requests.post(settings.API_URL + "/public/stt/call/finish", json=data)
+
 
 def send_msg(
     msg: str = None,
@@ -285,8 +287,8 @@ def send_msg(
         "callId": call_id,
         "line": "agent" if channel == 1 else "customer",
         "textContent": msg,
-        #"audioPath": "/audio/test",
-        #"startTime": str(datetime.date(datetime.now())),
+        # "audioPath": "/audio/test",
+        # "startTime": str(datetime.date(datetime.now())),
         "extractInfoLine": extract_info_line,
         "extractInfoSum": extract_info_sum,
     }
