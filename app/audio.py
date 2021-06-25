@@ -62,9 +62,10 @@ def do_vad_split(infile: str, channel: int) -> List[AudioSegment]:
         [
             "ffmpeg",
             "-i",
-            resampled_file,
+            infile,
             "-af",
             f"silencedetect=noise={settings.NOISE_LEVEL}dB:d={settings.NOISE_DURATION}",
+            resampled_file,
             "-f",
             "null",
             "-",
