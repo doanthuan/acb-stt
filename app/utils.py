@@ -1,4 +1,3 @@
-import glob
 import logging
 import os
 import re
@@ -6,13 +5,14 @@ import subprocess
 import time
 import timeit
 from os import path
-from typing import Dict, Iterator, List, Tuple
+from typing import Dict, List, Tuple
 
 import requests
 from flask import request
 from trankit import Pipeline
 
 from .config import settings
+from .models.audio_segment import AudioSegment
 
 logger = logging.getLogger(__name__)
 
@@ -31,14 +31,13 @@ def upload_file() -> str:
     # return filename
 
 
-def preprocess(filename: str) -> Iterator[Tuple[str, str]]:
-    # os.system('ffmpeg -i %s -ar 16000 -ac 1 -ab 256000 upload/upload.wav -y' % filename)
+def preprocess(filename: str) -> List[AudioSegment]:
     infile_path = path.join(settings.UPLOAD_DIR, filename)
     format_file = path.join(settings.UPLOAD_DIR, f"format_{filename}")
     left_file = path.join(settings.UPLOAD_DIR, f"left_{filename}")
     right_file = path.join(settings.UPLOAD_DIR, f"right_{filename}")
-    # subprocess.call(['ffmpeg', '-i', "upload/"+filename, '-ar', '16000', '-ac', '1', '-ab', '256000', "upload/"+ format_file, '-y'])
-    # subprocess.call(['ffmpeg', '-i', "upload/"+filename, '-ar', '16000', '-af','afftdn=nf=-20', "upload/"+ format_file, '-y'])
+
+    # convert uploaded audio file to wav file with noise reduction
     subprocess.call(
         [
             "ffmpeg",
@@ -55,7 +54,7 @@ def preprocess(filename: str) -> Iterator[Tuple[str, str]]:
         ]
     )
 
-    # split audio by channels
+    # Split the audio by channels
     logger.info("Doing spliting audio by channel")
     subprocess.call(
         [
@@ -71,13 +70,42 @@ def preprocess(filename: str) -> Iterator[Tuple[str, str]]:
         ]
     )
 
-    # split sentences by silence
-    # subprocess.call(['ffmpeg', '-i', "upload/"+left_file, '-af', 'silencedetect=noise=-20dB:d=1', '-f', 'null', '-', '2>', 'vol.txt'])
-    left_sentences = do_vad_split(left_file)
-    right_sentences = do_vad_split(right_file)
-    list_sentences = zip(left_sentences, right_sentences)
+    audio_segments = []
+    audio_segments.extend(do_vad_split(left_file, 1))
+    audio_segments.extend(do_vad_split(right_file, 2))
+    audio_segments = sorted(audio_segments, key=lambda x: x.timestamp, reverse=False)
 
-    return list_sentences
+    return audio_segments
+
+
+def do_stt_and_extract_info(
+    call_id, audio_segment: AudioSegment, current_text: str = ""
+) -> str:
+    if not path.exists(audio_segment.audio_file):
+        raise ValueError(f"Path {audio_segment.audio_file} does not exist")
+
+    output_text = speech_to_text(audio_segment.audio_file)
+    if not output_text:
+        return ""
+
+    current_text = " ".join([current_text, output_text])
+
+    # attempt to extract customer info from current sentence and the entire
+    # sentence
+    customer_info = extract_customer_info(output_text)
+    current_customer_info = extract_customer_info(current_text)
+
+    logger.info(
+        f"Send updated result: text='{output_text}' channel={audio_segment.channel} call_id={call_id} info={customer_info}"
+    )
+    send_msg(
+        output_text,
+        audio_segment.channel,
+        call_id,
+        customer_info,
+        current_customer_info,
+    )
+    return current_text
 
 
 def process_audio_sentence(input_sen, channel, call_id, customer_text_sum="") -> str:
@@ -96,7 +124,6 @@ def process_audio_sentence(input_sen, channel, call_id, customer_text_sum="") ->
 
         # extract info from this sentence
         extract_info_line = extract_customer_info(text)
-        logger.debug(f"extract customer info: {extract_info_line}")
         # print("extract_info_line:")
         # pprint(extract_info_line)
 
@@ -106,14 +133,16 @@ def process_audio_sentence(input_sen, channel, call_id, customer_text_sum="") ->
         # pprint(extract_info_sum)
 
     # get result and push web socket to GUI display in dialog
-    logger.info(f"send message: {text}")
+    logger.info(
+        f"send STT result: text='{text}' channel={channel} call_id={call_id} info={extract_info_line}"
+    )
     send_msg(text, channel, call_id, extract_info_line, extract_info_sum)
 
     return text
 
 
 def extract_customer_info(text):
-    print("extract customer info")
+    """ Doing entities regconition """
     # name entity recoginition
     name_list, address_list = parse_name_entity(text)
 
@@ -130,7 +159,6 @@ def extract_customer_info(text):
 
 
 def extract_identity_info(text: str) -> Dict:
-    print("extract identity info")
     name_list, address_list = parse_name_entity(text)
     id_number, phone_number = parse_id_phone_number(text)
     return {
@@ -141,7 +169,7 @@ def extract_identity_info(text: str) -> Dict:
     }
 
 
-def do_vad_split(infile: str) -> List[str]:
+def do_vad_split(infile: str, channel: int) -> List[AudioSegment]:
 
     output = subprocess.run(
         [
@@ -168,32 +196,41 @@ def do_vad_split(infile: str) -> List[str]:
             else:
                 time_offset = float(line[start_idx:].strip())
             silences.append(time_offset)
-    logger.debug(f"SILENCES: {silences}")
+    logger.debug(f"Silences found: {silences}")
 
     # No silience found, no need to split the audio
     if len(silences) == 0:
-        return [infile]
+        return [
+            AudioSegment(
+                timestamp=0,
+                audio_file=infile,
+            )
+        ]
 
     file_splits = os.path.splitext(infile)
     current_split = 0
 
     # for the case first silence_start != 0
+    res = []
     if silences[0] != 0:
+        audio_file = f"{file_splits[0]}_{current_split:03}{file_splits[1]}"
         commands = [
             "ffmpeg",
             "-t",
             str(silences[0] + 2 * 0.25),
             "-i",
             infile,
-            f"{file_splits[0]}_{current_split:03}{file_splits[1]}",
+            audio_file,
         ]
         subprocess.run(
             commands,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )
+        res.append(AudioSegment(timestamp=0, channel=channel, audio_file=audio_file))
         current_split += 1
 
+    # split the audio file into smaller audio segments with silience trimmed
     for idx in range(1, len(silences), 2):
         commands = [
             "ffmpeg",
@@ -202,22 +239,24 @@ def do_vad_split(infile: str) -> List[str]:
         ]
         if idx + 1 < len(silences):
             commands.extend(["-t", str(silences[idx + 1] - silences[idx] + 2 * 0.25)])
-        commands.extend(
-            [
-                "-i",
-                infile,
-                f"{file_splits[0]}_{current_split:03}{file_splits[1]}",
-            ]
-        )
+
+        audio_file = f"{file_splits[0]}_{current_split:03}{file_splits[1]}"
+        commands.extend(["-i", infile, audio_file])
         subprocess.run(
             commands,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )
         current_split += 1
-    audio_files = glob.glob(f"{file_splits[0]}_*")
-    audio_files.sort()
-    return audio_files
+        res.append(
+            AudioSegment(
+                timestamp=silences[idx], channel=channel, audio_file=audio_file
+            )
+        )
+    return res
+    # audio_files = glob.glob(f"{file_splits[0]}_*")
+    # audio_files.sort()
+    # return audio_files
 
 
 def speech_to_text(filename: str) -> str:
@@ -274,7 +313,9 @@ def start_call() -> None:
 
     r = requests.post(settings.API_URL + "/public/stt/call/start", json=data)
     json_result = r.json()
-    return json_result["model"]["id"]
+    call_id = json_result["model"]["id"]
+    logger.info(f"Successfully started the call with ID={call_id}")
+    return call_id
 
 
 def stop_call(call_id, audio_file):
@@ -286,6 +327,7 @@ def stop_call(call_id, audio_file):
         "audioPath": settings.SITE_URL + "/" + settings.UPLOAD_DIR + "/" + audio_file,
     }
     requests.post(settings.API_URL + "/public/stt/call/finish", json=data)
+    logger.info(f"Sucessfully stopped the call {call_id}")
 
 
 def send_msg(
@@ -300,7 +342,7 @@ def send_msg(
         "line": "agent" if channel == 1 else "customer",
         "textContent": msg,
         # "audioPath": "/audio/test",
-        # "startTime": str(datetime.date(datetime.now())),
+        "startTime": int(time.time() * 1000),
         "extractInfoLine": extract_info_line,
         "extractInfoSum": extract_info_sum,
     }

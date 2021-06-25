@@ -7,7 +7,7 @@ from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS, cross_origin
 
 from .exceptions import APIException
-from .utils import (extract_identity_info, preprocess, process_audio_sentence,
+from .utils import (do_stt_and_extract_info, extract_identity_info, preprocess,
                     start_call, stop_call, upload_file)
 
 app = Flask(__name__, template_folder="./templates")
@@ -39,17 +39,26 @@ def uploadFile():
         if call_id is None:
             raise ValueError("call_id cannot be None")
 
-        app.logger.info("start processing uploaded file")
         # preprocess, split audio by sentences
-        list_sentences = preprocess(filename)
-        customer_text_sum = ""
-        for left_sen, right_sen in list_sentences:
-            process_audio_sentence(left_sen, 1, call_id)
-            customer_text_sum += "." + process_audio_sentence(
-                right_sen, 2, call_id, customer_text_sum
-            )
+        # app.logger.info("start processing uploaded file")
+        audio_segments = preprocess(filename)
+
+        agent_text = ""
+        customer_text = ""
+        for segment in audio_segments:
+
+            if segment.channel == 1:
+                agent_text = do_stt_and_extract_info(call_id, segment, agent_text)
+            else:
+                customer_text = do_stt_and_extract_info(call_id, segment, customer_text)
+
+        # customer_text_sum = ""
+        # for left_sen, right_sen in list_sentences:
+        #     process_audio_sentence(left_sen, 1, call_id)
+        #     customer_text_sum += "." + process_audio_sentence(
+        #         right_sen, 2, call_id, customer_text_sum
+        #     )
         stop_call(call_id, filename)
-        app.logger.info("processing uploaded file finished")
 
         return jsonify(result="success")
     except Exception as e:
