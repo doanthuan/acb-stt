@@ -221,8 +221,12 @@ def do_vad_split(infile: str) -> List[str]:
 def speech_to_text(filename: str) -> str:
 
     result = ""
+<<<<<<< HEAD
     # audio_file = path.join(path.realpath(__file__).parent.absolute(), filename)
     audio_file = path.abspath(filename)
+=======
+    audio_file = filename
+>>>>>>> e35fdd4dbd28b6d6c2cc093dfe665d577f422892
 
     # data = {"apiKey": settings.STT_API_KEY}
     files = {"file": open(audio_file, "rb")}
