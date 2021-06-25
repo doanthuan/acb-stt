@@ -1,4 +1,5 @@
 from trankit import Pipeline
+
 from app.models.ner import NerType
 from app.tests.utils import extract_tokens
 
@@ -38,8 +39,7 @@ def test_ner(pipeline: Pipeline):
     ]
     processed_text = []
     for line in right_sentences_text:
-        processed_text.append(" ".join([word.capitalize() for word in
-                                        line.split()]))
+        processed_text.append(" ".join([word.capitalize() for word in line.split()]))
     # right_sentences_text = [line.capitalize() for line in right_sentences_text]
 
     text = " . ".join(processed_text)

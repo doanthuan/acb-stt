@@ -1,4 +1,5 @@
 import glob
+import logging
 import os
 import re
 import subprocess
@@ -13,13 +14,17 @@ from trankit import Pipeline
 
 from .config import settings
 
+logger = logging.getLogger(__name__)
+
 p = Pipeline(lang="vietnamese", gpu=False, cache_dir=settings.CACHE_DIR)
 
 
 def upload_file() -> str:
     file = request.files["file"]
     filename = f"uploaded_file_{timeit.default_timer()}.wav"
-    file.save(path.join(settings.UPLOAD_DIR, filename))
+    dst_file = path.join(settings.UPLOAD_DIR, filename)
+    file.save(dst_file)
+    logger.info(f"Upload file done. File save at {dst_file}")
     return filename
 
     # elapsed = timeit.default_timer() - start_time
@@ -42,13 +47,14 @@ def preprocess(filename: str) -> Iterator[Tuple[str, str]]:
             "-ar",
             "16000",
             "-af",
-            "highpass=f=200, lowpass=f=3000",
+            "aresample=resampler=soxr:precision=28:cheby=1,highpass=f=200,lowpass=f=3000,afftdn=nt=w:om=o",
             format_file,
             "-y",
         ]
     )
 
     # split audio by channels
+    logger.info("Doing spliting audio by channel")
     subprocess.call(
         [
             "ffmpeg",
@@ -88,6 +94,7 @@ def process_audio_sentence(input_sen, channel, call_id, customer_text_sum="") ->
 
         # extract info from this sentence
         extract_info_line = extract_customer_info(text)
+        logger.debug(f"extract customer info: {extract_info_line}")
         # print("extract_info_line:")
         # pprint(extract_info_line)
 
@@ -97,13 +104,14 @@ def process_audio_sentence(input_sen, channel, call_id, customer_text_sum="") ->
         # pprint(extract_info_sum)
 
     # get result and push web socket to GUI display in dialog
-    print("send_msg")
+    logger.info(f"send message: {text}")
     send_msg(text, channel, call_id, extract_info_line, extract_info_sum)
 
     return text
 
 
 def extract_customer_info(text):
+    print("extract customer info")
     # name entity recoginition
     name_list, address_list = parse_name_entity(text)
 
@@ -120,6 +128,7 @@ def extract_customer_info(text):
 
 
 def extract_identity_info(text: str) -> Dict:
+    print("extract identity info")
     name_list, address_list = parse_name_entity(text)
     id_number, phone_number = parse_id_phone_number(text)
     return {
@@ -157,7 +166,7 @@ def do_vad_split(infile: str) -> List[str]:
             else:
                 time_offset = float(line[start_idx:].strip())
             silences.append(time_offset)
-    print(f"SILENCES: {silences}")
+    logger.debug(f"SILENCES: {silences}")
 
     # No silience found, no need to split the audio
     if len(silences) == 0:
@@ -212,8 +221,8 @@ def do_vad_split(infile: str) -> List[str]:
 def speech_to_text(filename: str) -> str:
 
     result = ""
-    root_path = path.dirname(path.realpath(__file__)).parent.absolute()
-    audio_file = path.join(root_path, filename)
+    # audio_file = path.join(path.realpath(__file__).parent.absolute(), filename)
+    audio_file = path.abspath(filename)
 
     # data = {"apiKey": settings.STT_API_KEY}
     files = {"file": open(audio_file, "rb")}
@@ -221,8 +230,8 @@ def speech_to_text(filename: str) -> str:
     # print(data)
 
     if not r.ok:
-        print("Something went wrong!")
-        print(r)
+        logger.error("Something went wrong!")
+        logger.error(r)
         return ""
 
     # print("Upload completed successfully!")
@@ -236,7 +245,7 @@ def speech_to_text(filename: str) -> str:
 
 def parse_stt_result(json_result: Dict) -> str:
     if not json_result["result"]:
-        print("STT Engine returns nothings")
+        logger.warning("STT Engine returns nothings")
         return ""
 
     result = json_result["result"]
@@ -300,7 +309,6 @@ def send_msg(
 def parse_name_entity(text: str) -> Tuple[List[str], List[str]]:
     # text = text.upper()
     text = num_mapping(text)
-    print(text)
 
     # name entity recognition
     vi_output = p.ner(text)

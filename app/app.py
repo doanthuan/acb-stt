@@ -1,27 +1,23 @@
+import logging
+import logging.config
+import os
 from typing import Dict
 
-import requests
 from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS, cross_origin
 
-from .config import settings
 from .exceptions import APIException
 from .utils import (extract_identity_info, preprocess, process_audio_sentence,
                     start_call, stop_call, upload_file)
 
-# from models.train_sentiment.DataSource import normalize_text
-# from correct_spell import get_best_sentence
-# from models import predict_topic
-# from google_trans import transcribe_file
-# from test_stream import transcribe_streaming
-
-
-# filename = "./models/sentiment_model.joblib"
-# clf = joblib.load(filename)
-
 app = Flask(__name__, template_folder="./templates")
-cors = CORS(app)
-app.config["CORS_HEADERS"] = "Content-Type"
+
+
+@app.before_first_request
+def setup_app():
+    setup_logging()
+    CORS(app)
+    app.config["CORS_HEADERS"] = "Content-Type"
 
 
 @app.errorhandler(APIException)
@@ -38,14 +34,12 @@ def main():
 @app.route("/uploadfile", methods=["POST"])
 def uploadFile():
     try:
-
         filename = upload_file()
-
-        # start a call
         call_id = start_call()
         if call_id is None:
             raise ValueError("call_id cannot be None")
 
+        app.logger.info('start processing uploaded file')
         # preprocess, split audio by sentences
         list_sentences = preprocess(filename)
         customer_text_sum = ""
@@ -55,10 +49,11 @@ def uploadFile():
                 right_sen, 2, call_id, customer_text_sum
             )
         stop_call(call_id, filename)
+        app.logger.info('processing uploaded file finished')
 
         return jsonify(result="success")
     except Exception as e:
-        print("Unexpected error:", e)
+        app.logger.error(f"Unexpected error: {e}")
         raise e
 
 
@@ -74,6 +69,16 @@ def read_identity_info() -> Dict:
     if text == "":
         raise APIException("`text` field is required")
     return extract_identity_info(text)
+
+
+def setup_logging():
+    from .config import settings
+    from .logger import get_logging_config
+
+    log_dir = settings.LOG_DIR
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    logging.config.dictConfig(get_logging_config())
 
 
 if __name__ == "__main__":
