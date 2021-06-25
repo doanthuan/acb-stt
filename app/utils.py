@@ -44,6 +44,8 @@ def preprocess(filename: str) -> Iterator[Tuple[str, str]]:
             "ffmpeg",
             "-i",
             infile_path,
+            "-acodec",
+            "pcm_s16le",
             "-ar",
             "16000",
             "-af",
