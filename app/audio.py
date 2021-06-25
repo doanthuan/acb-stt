@@ -90,6 +90,7 @@ def do_vad_split(infile: str, channel: int) -> List[AudioSegment]:
         return [
             AudioSegment(
                 timestamp=0,
+                channel=channel,
                 audio_file=resampled_file,
             )
         ]
