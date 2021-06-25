@@ -18,6 +18,7 @@ def setup_app():
     setup_logging()
     CORS(app)
     app.config["CORS_HEADERS"] = "Content-Type"
+    app.logger.info("Sucessfully init app")
 
 
 @app.errorhandler(APIException)

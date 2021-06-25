@@ -85,8 +85,11 @@ def do_stt_and_extract_info(
         raise ValueError(f"Path {audio_segment.audio_file} does not exist")
 
     output_text = speech_to_text(audio_segment.audio_file)
+
+    # As the STT output text is empty, no need to process further,
+    # Just return the last current text for the next run
     if not output_text:
-        return ""
+        return current_text
 
     current_text = " ".join([current_text, output_text])
 
@@ -400,8 +403,9 @@ def parse_id_phone_number(text) -> Tuple[str, str]:
 
     # Remove all the words affect the pattern matching
     BAD_WORDS = [r"\s", "ạ", "dạ", "rồi"]
-    for word in BAD_WORDS:
-        text = re.sub(word, "", text)
+    text = re.sub("|".join(BAD_WORDS), "", text)
+    # for word in BAD_WORDS:
+    #     text = re.sub(word, "", text)
 
     # print(f"start extracting from text: {text}")
 
@@ -413,10 +417,10 @@ def parse_id_phone_number(text) -> Tuple[str, str]:
     PHONE_REGEX = r"(0?)(3[2-9]|5[6|8|9]|7[0|6-9]|8[0-6|8|9]|9[0-4|6-9])\d{7,8}[^\d]"
 
     # regex to match ID number (new format)
-    ID_REGEX = r"0([0-8]\d|9[0-6])\d{9}[^\d]"
+    ID_REGEX = r"0?([0-8]\d|9[0-6])\d{9}[^\d]"
 
     # regex to match ID number (old format)
-    ID_REGEX_OLD = r"(0[1-8]\d|09[0-25]|[1-2]\d{2}|3[0-8]\d)\d{6}[^\d]"
+    ID_REGEX_OLD = r"(0?[1-8]\d|09[0-25]|[1-2]\d{2}|3[0-8]\d)\d{6}[^\d]"
 
     id_number = extract_info(ID_REGEX, text)
     if id_number == "":
