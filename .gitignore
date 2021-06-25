@@ -10,3 +10,4 @@ cache/
 .DS_Store
 run.sh
 logs
+.env
