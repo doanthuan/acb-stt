@@ -55,6 +55,9 @@ def do_vad_split(infile: str, channel: int) -> List[AudioSegment]:
     resampled_file = "resampled_" + os.path.basename(infile)
     resampled_file = os.path.join(settings.UPLOAD_DIR, resampled_file)
 
+    # resample audio file at 16khz, with/without noise reduction
+    resample_audio_file(infile, resampled_file)
+
     logger.info(
         f"split into smaller audio file by silence. noise={settings.NOISE_LEVEL} duration={settings.NOISE_DURATION}"
     )
