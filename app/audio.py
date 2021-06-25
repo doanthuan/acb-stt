@@ -42,9 +42,9 @@ def resample_audio_file(infile: str, outfile: str):
             "-ar",
             "16000",
             "-af",
-            "highpass=f=200,lowpass=f=3000",
+            # "highpass=f=200,lowpass=f=3000",
             # "highpass=f=200,lowpass=f=3000,afftdn=nt=w:om=o",
-            # "aresample=resampler=soxr:precision=28:cheby=1,highpass=f=200,lowpass=f=3000,afftdn=nt=w:om=o",
+            "aresample=resampler=soxr:precision=30:cheby=1,highpass=f=200,lowpass=f=3000,afftdn=nt=w:om=o",
             outfile,
             "-y",
         ]
@@ -65,10 +65,9 @@ def do_vad_split(infile: str, channel: int) -> List[AudioSegment]:
         [
             "ffmpeg",
             "-i",
-            infile,
+            resampled_file,
             "-af",
             f"silencedetect=noise={settings.NOISE_LEVEL}dB:d={settings.NOISE_DURATION}",
-            resampled_file,
             "-f",
             "null",
             "-",
@@ -133,7 +132,7 @@ def do_vad_split(infile: str, channel: int) -> List[AudioSegment]:
             commands.extend(["-t", str(silences[idx + 1] - silences[idx] + 2 * 0.25)])
 
         audio_file = f"{file_splits[0]}_{current_split:03}{file_splits[1]}"
-        commands.extend(["-i", infile, audio_file])
+        commands.extend(["-i", resampled_file, audio_file])
         subprocess.run(
             commands,
             stdout=subprocess.PIPE,
