@@ -6,9 +6,10 @@ from typing import Dict
 from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS, cross_origin
 
+from .call import start_call, stop_call
 from .exceptions import APIException
-from .utils import (do_stt_and_extract_info, extract_identity_info, preprocess,
-                    start_call, stop_call, upload_file)
+from .nlp import extract_identity_info
+from .utils import do_stt_and_extract_info, preprocess, upload_file
 
 app = Flask(__name__, template_folder="./templates")
 
@@ -47,7 +48,6 @@ def uploadFile():
         agent_text = ""
         customer_text = ""
         for segment in audio_segments:
-
             if segment.channel == 1:
                 agent_text = do_stt_and_extract_info(call_id, segment, agent_text)
             else:

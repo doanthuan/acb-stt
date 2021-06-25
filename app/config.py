@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     UPLOAD_DIR = env.str("UPLOAD_DIR", "upload")
     CACHE_DIR = env.str("CACHE_DIR", "cache")
 
+    # settings for noise
+    NOISE_LEVEL = env.int("NOISE_LEVEL", -30)
+    NOISE_DURATION = env.float("NOISE_DURATION", 0.25)
+
     # for the logging
     LOG_LEVEL = logging.DEBUG
     LOG_DIR = env.str("LOG_DIR", "logs")
