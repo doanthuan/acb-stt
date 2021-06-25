@@ -39,7 +39,7 @@ def uploadFile():
         if call_id is None:
             raise ValueError("call_id cannot be None")
 
-        app.logger.info('start processing uploaded file')
+        app.logger.info("start processing uploaded file")
         # preprocess, split audio by sentences
         list_sentences = preprocess(filename)
         customer_text_sum = ""
@@ -49,7 +49,7 @@ def uploadFile():
                 right_sen, 2, call_id, customer_text_sum
             )
         stop_call(call_id, filename)
-        app.logger.info('processing uploaded file finished')
+        app.logger.info("processing uploaded file finished")
 
         return jsonify(result="success")
     except Exception as e:

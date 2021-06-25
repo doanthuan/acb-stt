@@ -10,9 +10,7 @@ def get_logging_config() -> Dict:
         "version": 1,
         "disable_existing_loggers": False,
         "formatters": {
-            "default": {
-                "format": "[%(asctime)s] %(module)s %(levelname)s: %(message)s"
-            }
+            "default": {"format": "[%(asctime)s] %(module)s %(levelname)s: %(message)s"}
         },
         "handlers": {
             "console": {
