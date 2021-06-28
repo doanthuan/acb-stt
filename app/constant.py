@@ -1,5 +1,5 @@
 # words that should not be included in the text when doing entities recognition
-BAD_WORDS = [r"\s", "dạ","òi", "ồi", "em", "ạ", "dạ", "rồi"]
+BAD_WORDS = [r"\s", "òi", "ồi", "em", "á", "ạ", "rồi"]
 
 # regex to match phone number in VN (as standard)
 PHONE_REGEX = r"(0?)(3[2-9]|5[6|8|9]|7[0|6-9]|8[0-6|8|9]|9[0-4|6-9])\d{7,8}[^\d]"

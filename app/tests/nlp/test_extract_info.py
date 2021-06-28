@@ -5,6 +5,14 @@ from app.tests.utils import extract_tokens
 from app.nlp import parse_id_phone_number, parse_name_entity
 
 def test_recognize_id():
+    in_text = """dạ không hai năm\n
+                bảy hai chín\n
+                bốn không á chín\n
+    """
+    uid, phone = parse_id_phone_number(in_text)
+    assert uid == "025729409"
+
+def test_recognize_id():
     in_text = """một sáu bốn một ạ ạ\n
                 không ba ba ạ ạ\n
                 sáu không ạ ạ\n
@@ -17,7 +25,13 @@ def test_recognize_name():
     in_text = """em là nguyễn văn trường ạ ạ
     """
     names, _ = parse_name_entity(in_text)
-    assert "Nguyễn Văn Trường" in names
+    assert "nguyễn văn trường" in names
+
+def test_recognize_name_2():
+    in_text = """dạ lê thảo phúc
+    """
+    names, _ = parse_name_entity(in_text)
+    assert "lê thảo phúc" in names
 
 def test_ner(pipeline: Pipeline):
     right_sentences_text = [

@@ -43,8 +43,8 @@ def resample_audio_file(infile: str, outfile: str):
             "16000",
             "-af",
             # "highpass=f=200,lowpass=f=3000",
-            # "highpass=f=200,lowpass=f=3000,afftdn=nt=w:om=o",
-            "aresample=resampler=soxr:precision=30:cheby=1,highpass=f=200,lowpass=f=3000,afftdn=nt=w:om=o",
+            "highpass=f=200,lowpass=f=3000,afftdn=nt=w:om=o",
+            # "aresample=resampler=soxr:precision=30:cheby=1,highpass=f=200,lowpass=f=3000,afftdn=nt=w:om=o",
             outfile,
             "-y",
         ]

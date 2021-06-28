@@ -11,11 +11,11 @@ p = Pipeline(lang="vietnamese", gpu=False, cache_dir=settings.CACHE_DIR)
 
 
 def parse_name_entity(text: str) -> Tuple[List[str], List[str]]:
-    # text = num_mapping(text)
-    bad_words = [r'\n', 'ạ']
-    text = re.sub('|'.join(bad_words), " ", text)
-    words = [word.capitalize() for word in text.split(' ')]
-    text = ' '.join(words)
+    text = num_mapping(text)
+    # bad_words = [r'\n', 'ạ']
+    # text = re.sub('|'.join(bad_words), " ", text)
+    # words = [word.capitalize() for word in text.split(' ')]
+    # text = ' '.join(words)
 
     # name entity recognition
     vi_output = p.ner(text)

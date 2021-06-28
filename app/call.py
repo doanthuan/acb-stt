@@ -50,7 +50,7 @@ def send_msg(
         "line": "agent" if channel == 1 else "customer",
         "textContent": msg,
         # "audioPath": "/audio/test",
-        "startTime": round(time.time() * 1000),
+        # "startTime": round(time.time() * 1000),
         "extractInfoLine": extract_info_line,
         "extractInfoSum": extract_info_sum,
     }

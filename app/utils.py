@@ -57,8 +57,7 @@ def do_stt_and_extract_info(
 
     current_text = " ".join([current_text, output_text])
 
-    # attempt to extract customer info from current sentence and the entire
-    # sentence
+    # attempt to extract customer info from current sentence and the entire sentence
     customer_info = extract_customer_info(output_text)
     current_customer_info = extract_customer_info(current_text)
 
