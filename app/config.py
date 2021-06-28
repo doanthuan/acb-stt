@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     NOISE_DURATION = env.float("NOISE_DURATION", 0.25)
 
     # for the logging
-    LOG_LEVEL = logging.DEBUG
+    LOG_LEVEL = logging.INFO
     LOG_DIR = env.str("LOG_DIR", "logs")
     LOG_MAX_SIZE = env.int("LOG_MAX_SIZE", 10485760)
     LOG_MAX_COUNTS = env.int("LOG_MAX_COUNTS", 3)

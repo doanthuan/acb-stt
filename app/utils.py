@@ -43,23 +43,73 @@ def preprocess(filename: str) -> List[AudioSegment]:
 
 
 def do_stt_and_extract_info(
-    call_id, audio_segment: AudioSegment, current_text: str = ""
+    call_id: int = None,
+    audio_segment: AudioSegment = None,
+    current_text: str = "",
+    criteria: Dict = None,
 ) -> str:
     if not path.exists(audio_segment.audio_file):
         raise ValueError(f"Path {audio_segment.audio_file} does not exist")
 
     output_text = speech_to_text(audio_segment.audio_file)
-
     # As the STT output text is empty, no need to process further,
     # Just return the last current text for the next run
     if not output_text:
-        return current_text
+        return current_text, criteria
+
+    if "họ tên" in output_text or "họ và tên" in output_text:
+        logger.info("signal to detect `NAME`")
+        criteria["detect_name"] = True
+
+    if "địa chỉ" in output_text:
+        logger.info("signal to detect `ADDRESS`")
+        criteria["detect_address"] = True
+
+    if "chứng minh" in output_text or "căn cước" in output_text:
+        logger.info("signal to detect `ID`")
+        criteria["detect_id"] = True
+
+    if "số điện thoại" in output_text:
+        logger.info("signal to detect `PHONE_NUMBER`")
+        criteria["detect_phone"] = True
 
     current_text = " ".join([current_text, output_text])
 
     # attempt to extract customer info from current sentence and the entire sentence
-    customer_info = extract_customer_info(output_text)
-    current_customer_info = extract_customer_info(current_text)
+    customer_info = extract_customer_info(output_text, criteria=criteria)
+    current_customer_info = extract_customer_info(current_text, criteria=criteria)
+
+    if customer_info["nameList"] != "" or current_customer_info["nameList"] != "":
+        if criteria.get("detect_name") is True:
+            logger.info("Found NAMES. Reset flag `detect_name`")
+            logger.info("customer_info: {}".format(customer_info["nameList"]))
+            logger.info(
+                "current_customer_info: {}".format(current_customer_info["nameList"])
+            )
+            current_text = ""
+        criteria["detect_name"] = False
+
+    if customer_info["addressList"] != "" or current_customer_info["addressList"] != "":
+        if criteria.get("detect_address") is True:
+            logger.info("Found address. Reset flag `detect_address`")
+            logger.info("customer_info: {}".format(customer_info["addressList"]))
+            logger.info(
+                "current_customer_info: {}".format(current_customer_info["addressList"])
+            )
+            current_text = ""
+        criteria["detect_address"] = False
+
+    if customer_info["idNumber"] != "" or current_customer_info["idNumber"] != "":
+        if criteria.get("detect_id") is True:
+            logger.info("Found ID NUMBER. Reset flag `detect_id`")
+            current_text = ""
+        criteria["detect_id"] = False
+
+    if customer_info["phoneNumber"] != "" or current_customer_info["phoneNumber"] != "":
+        if criteria.get("detect_phone") is True:
+            logger.info("Found PHONE NUMBER. Reset flag `detect_phone`")
+            current_text = ""
+        criteria["detect_phone"] = False
 
     logger.info(
         f"Send updated result: text='{output_text}' channel={audio_segment.channel} call_id={call_id} info={customer_info}"
@@ -71,7 +121,7 @@ def do_stt_and_extract_info(
         customer_info,
         current_customer_info,
     )
-    return current_text
+    return current_text, criteria
 
 
 def speech_to_text(filename: str) -> str:

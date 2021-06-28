@@ -1,8 +1,9 @@
 from trankit import Pipeline
 
 from app.models.ner import NerType
-from app.tests.utils import extract_tokens
 from app.nlp import parse_id_phone_number, parse_name_entity
+from app.tests.utils import extract_tokens
+
 
 def test_recognize_id():
     in_text = """dạ không hai năm\n
@@ -11,6 +12,7 @@ def test_recognize_id():
     """
     uid, phone = parse_id_phone_number(in_text)
     assert uid == "025729409"
+
 
 def test_recognize_id_2():
     in_text = """một sáu bốn một ạ ạ\n
@@ -21,11 +23,13 @@ def test_recognize_id_2():
     uid, phone = parse_id_phone_number(in_text)
     assert uid == "164103360"
 
+
 def test_recognize_id_3():
     in_text = """một chín bảy á ba sáu á năm ba sáu tám
     """
     uid, phone = parse_id_phone_number(in_text)
     assert uid == "197365368"
+
 
 def test_recognize_name():
     in_text = """em là nguyễn văn trường ạ ạ
@@ -33,11 +37,13 @@ def test_recognize_name():
     names, _ = parse_name_entity(in_text)
     assert "nguyễn văn trường" in names
 
+
 def test_recognize_name_2():
     in_text = """dạ lê thảo phúc
     """
     names, _ = parse_name_entity(in_text)
     assert "lê thảo phúc" in names
+
 
 def test_ner(pipeline: Pipeline):
     right_sentences_text = [

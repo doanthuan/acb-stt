@@ -45,13 +45,30 @@ def uploadFile():
         # app.logger.info("start processing uploaded file")
         audio_segments = preprocess(filename)
 
+        criteria = {
+            "detect_name": False,
+            "detect_address": False,
+            "detect_id": False,
+            "detect_phone": False,
+            # more fields
+        }
         agent_text = ""
         customer_text = ""
         for segment in audio_segments:
             if segment.channel == 1:
-                agent_text = do_stt_and_extract_info(call_id, segment, agent_text)
+                agent_text, criteria = do_stt_and_extract_info(
+                    call_id=call_id,
+                    audio_segment=segment,
+                    current_text=agent_text,
+                    criteria=criteria,
+                )
             else:
-                customer_text = do_stt_and_extract_info(call_id, segment, customer_text)
+                customer_text, criteria = do_stt_and_extract_info(
+                    call_id=call_id,
+                    audio_segment=segment,
+                    current_text=customer_text,
+                    criteria=criteria,
+                )
 
         # customer_text_sum = ""
         # for left_sen, right_sen in list_sentences:

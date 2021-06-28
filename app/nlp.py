@@ -1,3 +1,4 @@
+import logging
 import re
 from typing import Dict, List, Tuple
 
@@ -7,6 +8,7 @@ from .config import settings
 from .constant import (BAD_WORDS, ID_REGEX, ID_REGEX_OLD, NUMERIC_MAPPINGS,
                        PHONE_REGEX)
 
+logger = logging.getLogger(__name__)
 p = Pipeline(lang="vietnamese", gpu=False, cache_dir=settings.CACHE_DIR)
 
 
@@ -35,6 +37,16 @@ def parse_name_entity(text: str) -> Tuple[List[str], List[str]]:
     return name_list, address_list
 
 
+def extract_info_from_ner(ner_output: Dict, tag: str) -> List[str]:
+    res = []
+    sentences = ner_output["sentences"]
+    for sentence in sentences:
+        for token in sentence["tokens"]:
+            if tag in token["ner"]:
+                res.append(token["text"])
+    return res
+
+
 def num_mapping(text):
     for pattern, repl in NUMERIC_MAPPINGS.items():
         text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
@@ -42,21 +54,43 @@ def num_mapping(text):
     return text
 
 
-def extract_customer_info(text):
+def extract_customer_info(text: str, criteria: Dict):
     """ Doing entities regconition """
-    # name entity recoginition
-    name_list, address_list = parse_name_entity(text)
+    customer_info = {
+        "nameList": "",
+        "addressList": "",
+        "idNumber": "",
+        "phoneNumber": "",
+    }
 
-    # parse cmnd, sdt
-    id_number, phone_number = parse_id_phone_number(text)
+    # Extract customer info. To do that more accurately, text needs
+    # to be preprocess such as convert to number, remove bad words that affects
+    # the pattern matching
+    text = num_mapping(text)
 
-    extract_info = {}
-    extract_info["nameList"] = ",".join(name_list)
-    extract_info["addressList"] = ",".join(address_list)
-    extract_info["idNumber"] = id_number
-    extract_info["phoneNumber"] = phone_number
+    try:
+        ner_output = p.ner(text)
+    except Exception as e:
+        logger.error(f"Cannot do NER: text={text} criteria={criteria}")
+        raise e
+    if criteria.get("detect_name") is True:
+        names = extract_info_from_ner(ner_output, tag="PER")
+        customer_info["nameList"] = ",".join(names)
 
-    return extract_info
+    if criteria.get("detect_address") is True:
+        addresses = extract_info_from_ner(ner_output, tag="LOC")
+        customer_info["addressList"] = ",".join(addresses)
+
+    text = re.sub("|".join(BAD_WORDS), "", text)
+    if criteria.get("detect_id") is True:
+        customer_info["idNumber"] = extract_info(ID_REGEX, text)
+        if customer_info["idNumber"] == "":
+            customer_info["idNumber"] = extract_info(ID_REGEX_OLD, text)
+
+    if criteria.get("detect_phone") is True:
+        customer_info["phoneNumber"] = extract_info(PHONE_REGEX, text)
+
+    return customer_info
 
 
 def extract_identity_info(text: str) -> Dict:
@@ -74,14 +108,7 @@ def extract_identity_info(text: str) -> Dict:
 def parse_id_phone_number(text) -> Tuple[str, str]:
 
     text = num_mapping(text)
-
-    # Remove all the words affect the pattern matching
-
     text = re.sub("|".join(BAD_WORDS), "", text)
-    # for word in BAD_WORDS:
-    #     text = re.sub(word, "", text)
-
-    # print(f"start extracting from text: {text}")
 
     # Extract the identity information by pattern matching
     # adding a single non-numeric character to avoid the case that
