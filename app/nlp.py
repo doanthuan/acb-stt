@@ -26,7 +26,7 @@ def parse_name_entity(text: str) -> Tuple[List[str], List[str]]:
     sentences = vi_output["sentences"]
     for sentence in sentences:
         for token in sentence["tokens"]:
-            if token["ner"] == "B-PER":
+            if "PER" in token["ner"]:
                 name_list.append(token["text"])
 
             if "LOC" in token["ner"]:
@@ -102,5 +102,6 @@ def extract_info(regex: str, text: str) -> str:
         return ""
 
     # remove last non-numeric character
-    start, end = match.span()
-    return text[start : end - 1]  # noqa: E203
+    return match.group()
+    # start, end = match.span()
+    # return text[start : end - 1]  # noqa: E203

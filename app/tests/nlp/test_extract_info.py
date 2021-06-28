@@ -12,7 +12,7 @@ def test_recognize_id():
     uid, phone = parse_id_phone_number(in_text)
     assert uid == "025729409"
 
-def test_recognize_id():
+def test_recognize_id_2():
     in_text = """một sáu bốn một ạ ạ\n
                 không ba ba ạ ạ\n
                 sáu không ạ ạ\n
@@ -20,6 +20,12 @@ def test_recognize_id():
     """
     uid, phone = parse_id_phone_number(in_text)
     assert uid == "164103360"
+
+def test_recognize_id_3():
+    in_text = """một chín bảy á ba sáu á năm ba sáu tám
+    """
+    uid, phone = parse_id_phone_number(in_text)
+    assert uid == "197365368"
 
 def test_recognize_name():
     in_text = """em là nguyễn văn trường ạ ạ
