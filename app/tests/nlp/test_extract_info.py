@@ -85,6 +85,33 @@ def test_recognize_name_2():
     assert "lê thảo phúc" in cust_info["nameList"]
 
 
+def test_recognize_name_3():
+    in_text = """dạ phùng thị khánh trang
+    """
+    cust_info = extract_customer_info(
+        in_text,
+        criteria={
+            "detect_name": True,
+            "detect_address": False,
+            "detect_id": False,
+            "detect_phone": False,
+        },
+    )
+    assert "phùng thị khánh trang" in cust_info["nameList"]
+
+def test_recognize_name_4():
+    in_text = """dạ rồi cám ơn chị trang """
+    cust_info = extract_customer_info(
+        in_text,
+        criteria={
+            "detect_name": True,
+            "detect_address": False,
+            "detect_id": False,
+            "detect_phone": False,
+        },
+    )
+    assert "trang" in cust_info["nameList"]
+
 def test_ner(pipeline: Pipeline):
     right_sentences_text = [
         "xin chào, tên tôi là đoàn vũ thuận",

@@ -62,23 +62,26 @@ def extract_customer_info(text: str, criteria: Dict):
         "idNumber": "",
         "phoneNumber": "",
     }
+    if not text:
+        logger.warning("input text is empty")
+        return customer_info
 
     # Extract customer info. To do that more accurately, text needs
     # to be preprocess such as convert to number, remove bad words that affects
     # the pattern matching
     text = num_mapping(text)
+    print(f'Scanning Named Identity for text="{text}"')
 
-    try:
-        print(f'Scanning Named Identity for text="{text}"')
-        ner_output = p.ner(text)
-    except Exception as e:
-        logger.error(f"Cannot do NER: text={text} criteria={criteria}")
-        raise e
+    ner_output = ""
     if criteria.get("detect_name") is True:
+        if ner_output == "":
+            ner_output = p.ner(text)
         names = extract_info_from_ner(ner_output, tag="PER")
         customer_info["nameList"] = ",".join(names)
 
     if criteria.get("detect_address") is True:
+        if ner_output == "":
+            ner_output = p.ner(text)
         addresses = extract_info_from_ner(ner_output, tag="LOC")
         customer_info["addressList"] = ",".join(addresses)
 

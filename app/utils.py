@@ -57,23 +57,35 @@ def do_stt_and_extract_info(
     if not output_text:
         return current_text, criteria
 
-    if "họ tên" in output_text or "họ và tên" in output_text:
-        logger.info("signal to detect `NAME`")
+    if audio_segment.channel == 1 and "họ tên" in output_text:
+        logger.info("Agent start asking `NAME`")
         criteria["detect_name"] = True
 
-    if "địa chỉ" in output_text:
-        logger.info("signal to detect `ADDRESS`")
+    if audio_segment.channel == 1 and "địa chỉ" in output_text:
+        logger.info("Agent starts asking `ADDRESS`")
         criteria["detect_address"] = True
 
-    if "chứng minh" in output_text or "căn cước" in output_text:
-        logger.info("signal to detect `ID`")
+    if audio_segment.channel == 1 and (
+        "chứng minh" in output_text or "căn cước" in output_text
+    ):
+        logger.info("Agent starts asking `ID`")
         criteria["detect_id"] = True
 
-    if "số điện thoại" in output_text:
-        logger.info("signal to detect `PHONE_NUMBER`")
+    if audio_segment.channel == 1 and "số điện thoại" in output_text:
+        logger.info("Agent starts asking `PHONE_NUMBER`")
         criteria["detect_phone"] = True
 
-    current_text = " ".join([current_text, output_text])
+    # Only save the entire text when the signal is on. Otherwise, keep it as
+    # blank
+    if (
+        criteria["detect_name"]
+        or criteria["detect_address"]
+        or criteria["detect_id"]
+        or criteria["detect_phone"]
+    ):
+        current_text = " ".join([current_text, output_text])
+        logger.debug(f'stt text="{output_text}"')
+        logger.debug(f'current_text="{current_text}" criteria={criteria}')
 
     # attempt to extract customer info from current sentence and the entire sentence
     customer_info = extract_customer_info(output_text, criteria=criteria)
