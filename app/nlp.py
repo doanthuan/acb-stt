@@ -69,6 +69,7 @@ def extract_customer_info(text: str, criteria: Dict):
     text = num_mapping(text)
 
     try:
+        print(f'Scanning Named Identity for text="{text}"')
         ner_output = p.ner(text)
     except Exception as e:
         logger.error(f"Cannot do NER: text={text} criteria={criteria}")
@@ -82,6 +83,7 @@ def extract_customer_info(text: str, criteria: Dict):
         customer_info["addressList"] = ",".join(addresses)
 
     text = re.sub("|".join(BAD_WORDS), "", text)
+    print(f'Scanning ID & Phone number for text="{text}"')
     if criteria.get("detect_id") is True:
         customer_info["idNumber"] = extract_info(ID_REGEX, text)
         if customer_info["idNumber"] == "":

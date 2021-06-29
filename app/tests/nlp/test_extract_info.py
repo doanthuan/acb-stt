@@ -1,7 +1,7 @@
 from trankit import Pipeline
 
 from app.models.ner import NerType
-from app.nlp import parse_id_phone_number, parse_name_entity
+from app.nlp import extract_customer_info
 from app.tests.utils import extract_tokens
 
 
@@ -10,8 +10,16 @@ def test_recognize_id():
                 bảy hai chín\n
                 bốn không á chín\n
     """
-    uid, phone = parse_id_phone_number(in_text)
-    assert uid == "025729409"
+    cust_info = extract_customer_info(
+        in_text,
+        criteria={
+            "detect_name": False,
+            "detect_address": False,
+            "detect_id": True,
+            "detect_phone": False,
+        },
+    )
+    assert cust_info["idNumber"] == "025729409"
 
 
 def test_recognize_id_2():
@@ -20,29 +28,61 @@ def test_recognize_id_2():
                 sáu không ạ ạ\n
                 cảm ơn anh cung cấp thông tin
     """
-    uid, phone = parse_id_phone_number(in_text)
-    assert uid == "164103360"
+    cust_info = extract_customer_info(
+        in_text,
+        criteria={
+            "detect_name": False,
+            "detect_address": False,
+            "detect_id": True,
+            "detect_phone": False,
+        },
+    )
+    assert cust_info["idNumber"] == "164103360"
 
 
 def test_recognize_id_3():
     in_text = """một chín bảy á ba sáu á năm ba sáu tám
     """
-    uid, phone = parse_id_phone_number(in_text)
-    assert uid == "197365368"
+    cust_info = extract_customer_info(
+        in_text,
+        criteria={
+            "detect_name": False,
+            "detect_address": False,
+            "detect_id": True,
+            "detect_phone": False,
+        },
+    )
+    assert cust_info["idNumber"] == "197365368"
 
 
 def test_recognize_name():
     in_text = """em là nguyễn văn trường ạ ạ
     """
-    names, _ = parse_name_entity(in_text)
-    assert "nguyễn văn trường" in names
+    cust_info = extract_customer_info(
+        in_text,
+        criteria={
+            "detect_name": True,
+            "detect_address": False,
+            "detect_id": False,
+            "detect_phone": False,
+        },
+    )
+    assert "nguyễn văn trường" in cust_info["nameList"]
 
 
 def test_recognize_name_2():
     in_text = """dạ lê thảo phúc
     """
-    names, _ = parse_name_entity(in_text)
-    assert "lê thảo phúc" in names
+    cust_info = extract_customer_info(
+        in_text,
+        criteria={
+            "detect_name": True,
+            "detect_address": False,
+            "detect_id": False,
+            "detect_phone": False,
+        },
+    )
+    assert "lê thảo phúc" in cust_info["nameList"]
 
 
 def test_ner(pipeline: Pipeline):
