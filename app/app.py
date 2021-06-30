@@ -2,14 +2,17 @@ import logging
 import logging.config
 import os
 from typing import Dict
+import pathlib
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, send_from_directory
 from flask_cors import CORS, cross_origin
 
 from .call import start_call, stop_call
 from .exceptions import APIException
 from .nlp import extract_identity_info
 from .utils import do_stt_and_extract_info, preprocess, upload_file
+from .config import settings
+
 
 app = Flask(__name__, template_folder="./templates")
 
@@ -107,6 +110,10 @@ def setup_logging():
         os.makedirs(log_dir)
     logging.config.dictConfig(get_logging_config())
 
+@app.route('/f/<path:path>')
+def load_files(path):
+    app_dir = str(pathlib.Path(__file__).parent.resolve())
+    return send_from_directory(app_dir+'/../'+settings.UPLOAD_DIR, path)
 
 if __name__ == "__main__":
     app.jinja_env.auto_reload = True

@@ -30,7 +30,7 @@ def stop_call(call_id, audio_file):
         # "sentiment": str(sentiment[0][0]),
         # "topic": topic
         "endTime": round(time.time() * 1000),
-        "audioPath": settings.SITE_URL + "/" + settings.UPLOAD_DIR + "/" + audio_file,
+        "audioPath": settings.SITE_URL + "/f/" + audio_file,
     }
     requests.post(settings.API_URL + "/public/stt/call/finish", json=data)
     logger.info(f"Sucessfully stopped the call {call_id}")
