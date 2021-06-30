@@ -1,9 +1,10 @@
 import logging
 import logging.config
 import os
+import pathlib
 from typing import Dict
 
-from flask import Flask, Response, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, send_from_directory
 from flask_cors import CORS, cross_origin
 
 from .call import start_call, stop_call
@@ -106,15 +107,16 @@ def load_files(path):
     if not os.path.exists(resource_path):
         raise APIException("resource not found", status_code=404)
 
-    def stream():
-        with open(resource_path, "rb") as fwav:
-            data = fwav.read(1024)
-            while data:
-                yield data
-                data = fwav.read(1024)
+    # def stream():
+    #     with open(resource_path, "rb") as fwav:
+    #         data = fwav.read(1024)
+    #         while data:
+    #             yield data
+    #             data = fwav.read(1024)
 
-    return Response(stream(), mimetype="audio/x-wav")
-    # return send_from_directory(settings.UPLOAD_DIR, path)
+    # return Response(stream(), mimetype="audio/x-wav")
+    app_dir = str(pathlib.Path(__file__).parent.resolve())
+    return send_from_directory(app_dir + "/../" + settings.UPLOAD_DIR, path)
 
 
 def setup_logging():
