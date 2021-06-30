@@ -45,7 +45,7 @@ def preprocess(filename: str) -> List[AudioSegment]:
 def do_stt_and_extract_info(
     call_id: int = None,
     audio_segment: AudioSegment = None,
-    current_text: str = "",
+    current_text: Dict[str, str] = None,
     criteria: Dict = None,
 ) -> str:
     if not path.exists(audio_segment.audio_file):
@@ -77,15 +77,18 @@ def do_stt_and_extract_info(
 
     # Only save the entire text when the signal is on. Otherwise, keep it as
     # blank
-    if (
-        criteria["detect_name"]
-        or criteria["detect_address"]
-        or criteria["detect_id"]
-        or criteria["detect_phone"]
-    ):
-        current_text = " ".join([current_text, output_text])
-        logger.debug(f'stt text="{output_text}"')
-        logger.debug(f'current_text="{current_text}" criteria={criteria}')
+    if criteria['detect_name']:
+        current_text["names"] = " ".join([current_text["names"], output_text])
+
+    if criteria['detect_address']:
+        current_text["addresses"] = " ".join([current_text["addresses"], output_text])
+
+    if criteria['detect_id']:
+        current_text["id"] = " ".join([current_text["id"], output_text])
+
+    if criteria['detect_phone']:
+        current_text["phone"] = " ".join([current_text["phone"], output_text])
+
 
     # attempt to extract customer info from current sentence and the entire sentence
     customer_info = extract_customer_info(output_text, criteria=criteria)
@@ -98,7 +101,7 @@ def do_stt_and_extract_info(
             logger.info(
                 "current_customer_info: {}".format(current_customer_info["nameList"])
             )
-            current_text = ""
+            current_text["names"] = ""
         criteria["detect_name"] = False
 
     if customer_info["addressList"] != "" or current_customer_info["addressList"] != "":
@@ -108,19 +111,19 @@ def do_stt_and_extract_info(
             logger.info(
                 "current_customer_info: {}".format(current_customer_info["addressList"])
             )
-            current_text = ""
+            current_text["addresses"] = ""
         criteria["detect_address"] = False
 
     if customer_info["idNumber"] != "" or current_customer_info["idNumber"] != "":
         if criteria.get("detect_id") is True:
             logger.info("Found ID NUMBER. Reset flag `detect_id`")
-            current_text = ""
+            current_text["id"] = ""
         criteria["detect_id"] = False
 
     if customer_info["phoneNumber"] != "" or current_customer_info["phoneNumber"] != "":
         if criteria.get("detect_phone") is True:
             logger.info("Found PHONE NUMBER. Reset flag `detect_phone`")
-            current_text = ""
+            current_text["phone"] = ""
         criteria["detect_phone"] = False
 
     logger.info(

@@ -54,8 +54,8 @@ def uploadFile():
             "detect_phone": False,
             # more fields
         }
-        agent_text = ""
-        customer_text = ""
+        agent_text = {"names": "", "addresses": "", "id": "", "phone": ""}
+        customer_text = {"names": "", "addresses": "", "id": "", "phone": ""}
         for segment in audio_segments:
             if segment.channel == 1:
                 agent_text, criteria = do_stt_and_extract_info(
@@ -71,13 +71,6 @@ def uploadFile():
                     current_text=customer_text,
                     criteria=criteria,
                 )
-
-        # customer_text_sum = ""
-        # for left_sen, right_sen in list_sentences:
-        #     process_audio_sentence(left_sen, 1, call_id)
-        #     customer_text_sum += "." + process_audio_sentence(
-        #         right_sen, 2, call_id, customer_text_sum
-        #     )
         stop_call(call_id, filename)
 
         return jsonify(result="success")

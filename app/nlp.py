@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 from trankit import Pipeline
 
@@ -54,7 +54,40 @@ def num_mapping(text):
     return text
 
 
-def extract_customer_info(text: str, criteria: Dict):
+def extract_customer_info(current_text: Union[str, Dict], criteria: Dict) -> Dict:
+    if isinstance(current_text, str):
+        return extract_customer_info_str(current_text, criteria)
+    return extract_customer_info_dict(current_text, criteria)
+
+
+def extract_customer_info_dict(text: Dict, criteria) -> Dict:
+    res = {
+        "nameList": "",
+        "addressList": "",
+        "idNumber": "",
+        "phoneNumber": "",
+    }
+
+    if criteria.get("detect_name") is True:
+        res["nameList"] = extract_customer_info_str(text["names"], criteria)["nameList"]
+
+    if criteria.get("detect_address") is True:
+        res["addressList"] = extract_customer_info_str(text["addresses"], criteria)[
+            "addressList"
+        ]
+
+    if criteria.get("detect_id") is True:
+        res["idNumber"] = extract_customer_info_str(text["id"], criteria)["idNumber"]
+
+    if criteria.get("detect_phone") is True:
+        res["phoneNumber"] = extract_customer_info_str(text["phone"], criteria)[
+            "phoneNumber"
+        ]
+
+    return res
+
+
+def extract_customer_info_str(text: str, criteria: Dict) -> Dict:
     """ Doing entities regconition """
     customer_info = {
         "nameList": "",
