@@ -99,6 +99,7 @@ def test_recognize_name_3():
     )
     assert "phùng thị khánh trang" in cust_info["nameList"]
 
+
 def test_recognize_name_4():
     in_text = """dạ rồi cám ơn chị trang """
     cust_info = extract_customer_info(
@@ -111,6 +112,39 @@ def test_recognize_name_4():
         },
     )
     assert "trang" in cust_info["nameList"]
+
+
+def test_recognize_name_5():
+    in_text = """cao thị huệ """
+    cust_info = extract_customer_info(
+        in_text,
+        criteria={
+            "detect_name": True,
+            "detect_address": False,
+            "detect_id": False,
+            "detect_phone": False,
+        },
+    )
+    assert "cao thị huệ" in cust_info["nameList"]
+
+
+def test_recognize_phone_number():
+    in_text = """có có em giúp anh đi\n
+                không chín bảy bốn\n
+                ba bảy sáu\n
+                sáu tám không
+    """
+    cust_info = extract_customer_info(
+        in_text,
+        criteria={
+            "detect_name": False,
+            "detect_address": False,
+            "detect_id": False,
+            "detect_phone": True,
+        },
+    )
+    assert "0974376680" in cust_info["phoneNumber"]
+
 
 def test_ner(pipeline: Pipeline):
     right_sentences_text = [

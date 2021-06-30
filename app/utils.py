@@ -57,7 +57,7 @@ def do_stt_and_extract_info(
     if not output_text:
         return current_text, criteria
 
-    if audio_segment.channel == 1 and "họ tên" in output_text:
+    if audio_segment.channel == 1 and ("tên" in output_text or "họ tên" in output_text):
         logger.info("Agent start asking `NAME`")
         criteria["detect_name"] = True
 

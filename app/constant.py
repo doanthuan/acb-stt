@@ -5,7 +5,7 @@
 BAD_WORDS = [" òi", " ồi", " em", " ạ", " à", " á", " ở", "rồi", r"\s"]
 
 # regex to match phone number in VN (as standard)
-PHONE_REGEX = r"(0?)(3[2-9]|5[6|8|9]|7[0|6-9]|8[0-6|8|9]|9[0-4|6-9])\d{7,8}[^\d]"
+PHONE_REGEX = r"(0?)(3[2-9]|5[6|8|9]|7[0|6-9]|8[0-6|8|9]|9[0-4|6-9])\d{7,8}"
 
 # regex to match ID number (new format)
 # ID_REGEX = r"0([0-8]\d|9[0-6])\d{9}[^\d]"

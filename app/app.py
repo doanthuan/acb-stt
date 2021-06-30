@@ -2,17 +2,15 @@ import logging
 import logging.config
 import os
 from typing import Dict
-import pathlib
 
-from flask import Flask, jsonify, render_template, request, send_from_directory
+from flask import Flask, Response, jsonify, render_template, request
 from flask_cors import CORS, cross_origin
 
 from .call import start_call, stop_call
+from .config import settings
 from .exceptions import APIException
 from .nlp import extract_identity_info
 from .utils import do_stt_and_extract_info, preprocess, upload_file
-from .config import settings
-
 
 app = Flask(__name__, template_folder="./templates")
 
@@ -101,6 +99,24 @@ def read_identity_info() -> Dict:
     return extract_identity_info(text)
 
 
+@app.route("/f/<path:path>", methods=["GET"])
+def load_files(path):
+    app.logger.info(f"Received streaming request for audio file: {path}")
+    resource_path = os.path.join(settings.UPLOAD_DIR, path)
+    if not os.path.exists(resource_path):
+        raise APIException("resource not found", status_code=404)
+
+    def stream():
+        with open(resource_path, "rb") as fwav:
+            data = fwav.read(1024)
+            while data:
+                yield data
+                data = fwav.read(1024)
+
+    return Response(stream(), mimetype="audio/x-wav")
+    # return send_from_directory(settings.UPLOAD_DIR, path)
+
+
 def setup_logging():
     from .config import settings
     from .logger import get_logging_config
@@ -110,10 +126,6 @@ def setup_logging():
         os.makedirs(log_dir)
     logging.config.dictConfig(get_logging_config())
 
-@app.route('/f/<path:path>')
-def load_files(path):
-    app_dir = str(pathlib.Path(__file__).parent.resolve())
-    return send_from_directory(app_dir+'/../'+settings.UPLOAD_DIR, path)
 
 if __name__ == "__main__":
     app.jinja_env.auto_reload = True
