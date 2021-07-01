@@ -1,11 +1,16 @@
+import contextlib
 import logging
 import os
 import re
 import subprocess
+import wave
 from typing import List
+
+import webrtcvad
 
 from .config import settings
 from .models.audio_segment import AudioSegment
+from .vad import frame_generator, vad_collector
 
 logger = logging.getLogger(__name__)
 
@@ -22,13 +27,11 @@ def split_by_channels(infile: str, left_outfile: str, right_outfile: str):
             "ffmpeg",
             "-i",
             infile,
-            "-filter_complex",
-            "[0:a]channelsplit=channel_layout=stereo[left][right]",
-            "-map",
-            "[left]",
+            "-map_channel",
+            "0.0.0",
             left_outfile,
-            "-map",
-            "[right]",
+            "-map_channel",
+            "0.0.1",
             right_outfile,
         ]
     )
@@ -44,12 +47,43 @@ def resample_audio_file(infile: str, outfile: str):
             "16000",
             "-af",
             # "highpass=f=200,lowpass=f=3000",
-            # "highpass=f=200,lowpass=f=3000,afftdn=nt=w:om=o",
-            "aresample=resampler=soxr:precision=30:cheby=1,highpass=f=200,lowpass=f=3000,afftdn=nt=w:om=o",
+            "highpass=f=200,lowpass=f=3000,afftdn=nt=w:om=o",
+            # "aresample=resampler=soxr:precision=30:cheby=1,highpass=f=200,lowpass=f=3000,afftdn=nt=w:om=o",
             outfile,
             "-y",
         ]
     )
+
+
+def do_vad_split_2(infile: str, channel: int) -> List[AudioSegment]:
+    resampled_file = "resampled_" + os.path.basename(infile)
+    resampled_file = os.path.join(settings.UPLOAD_DIR, resampled_file)
+
+    # resample audio file at 16khz, with/without noise reduction
+    resample_audio_file(infile, resampled_file)
+    audio_path, sample_rate = read_wave(resampled_file)
+
+    vad = webrtcvad.Vad(settings.VAD_AGGRESSIVE_LEVEL)
+    frames = frame_generator(settings.FRAME_DURATION_MS, audio_path, sample_rate)
+    frames = list(frames)
+
+    filename = os.path.splitext(resampled_file)[0]
+    segments = vad_collector(
+        sample_rate,
+        settings.FRAME_DURATION_MS,
+        settings.PADDING_DURATION_MS,
+        vad,
+        frames,
+    )
+
+    res = []
+    for i, segment in enumerate(segments):
+        path = f"{filename}_chunk_{i:003}.wav"
+        write_wave(path, segment.bytes, sample_rate)
+        res.append(
+            AudioSegment(timestamp=segment.timestamp, channel=channel, audio_file=path)
+        )
+    return res
 
 
 def do_vad_split(infile: str, channel: int) -> List[AudioSegment]:
@@ -155,6 +189,32 @@ def get_num_channels(infile: str) -> int:
     filter_output = re.findall(r"\d channels", output.stdout.decode("utf-8"))
     if len(filter_output) > 0:
         return int(filter_output[0].split(" ")[0])
+
+
+def read_wave(path):
+    """Reads a .wav file.
+    Takes the path, and returns (PCM audio data, sample rate).
+    """
+    with contextlib.closing(wave.open(path, "rb")) as wf:
+        num_channels = wf.getnchannels()
+        assert num_channels == 1
+        sample_width = wf.getsampwidth()
+        assert sample_width == 2
+        sample_rate = wf.getframerate()
+        assert sample_rate in (8000, 16000, 32000, 48000)
+        pcm_data = wf.readframes(wf.getnframes())
+        return pcm_data, sample_rate
+
+
+def write_wave(path, audio, sample_rate):
+    """Writes a .wav file.
+    Takes path, PCM audio data, and sample rate.
+    """
+    with contextlib.closing(wave.open(path, "wb")) as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(sample_rate)
+        wf.writeframes(audio)
 
 
 def process_audio_sentence(input_sen, channel, call_id, customer_text_sum="") -> str:

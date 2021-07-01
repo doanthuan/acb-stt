@@ -98,6 +98,8 @@ uvicorn==0.13.4
     # via -r requirements.in
 waitress==2.0.0
     # via -r requirements.in
+webrtcvad==2.0.10
+    # via -r requirements.in
 werkzeug==2.0.1
     # via flask
 

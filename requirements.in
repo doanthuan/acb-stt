@@ -9,3 +9,4 @@ gunicorn
 uvicorn
 httptools
 waitress
+webrtcvad

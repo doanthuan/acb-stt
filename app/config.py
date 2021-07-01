@@ -25,5 +25,10 @@ class Settings(BaseSettings):
     LOG_MAX_SIZE = env.int("LOG_MAX_SIZE", 10485760)
     LOG_MAX_COUNTS = env.int("LOG_MAX_COUNTS", 3)
 
+    # settings for VAD
+    VAD_AGGRESSIVE_LEVEL = 3
+    FRAME_DURATION_MS = 30
+    PADDING_DURATION_MS = 250
+
 
 settings = Settings()
