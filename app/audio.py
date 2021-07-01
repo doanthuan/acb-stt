@@ -62,6 +62,9 @@ def do_vad_split_2(infile: str, channel: int) -> List[AudioSegment]:
     # resample audio file at 16khz, with/without noise reduction
     resample_audio_file(infile, resampled_file)
     audio_path, sample_rate = read_wave(resampled_file)
+    logger.info(
+        f"collect voice audio using VAD.  aggressive={settings.VAD_AGGRESSIVE_LEVEL} frame_duration={settings.FRAME_DURATION_MS} padding={settings.PADDING_DURATION_MS}"
+    )
 
     vad = webrtcvad.Vad(settings.VAD_AGGRESSIVE_LEVEL)
     frames = frame_generator(settings.FRAME_DURATION_MS, audio_path, sample_rate)

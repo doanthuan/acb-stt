@@ -130,7 +130,7 @@ def extract_customer_info_str(text: str, criteria: Dict) -> Dict:
             # this can be tricky as the old-id-pattern matches can contain
             # non-numeric character. It's needed to remove them
             if len(customer_info["idNumber"]) > 9:
-                customer_info["idNumber"] = customer_info["idNumber"][:10]
+                customer_info["idNumber"] = customer_info["idNumber"][:9]
 
     if criteria.get("detect_phone") is True:
         print("Detect phone: text={text} ...")
