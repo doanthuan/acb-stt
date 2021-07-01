@@ -6,7 +6,8 @@ from typing import Dict, List
 import requests
 from flask import request
 
-from .audio import convert_to_wav, do_vad_split, split_by_channels
+from .audio import (convert_to_wav, do_vad_split, get_num_channels,
+                    split_by_channels)
 from .call import send_msg
 from .config import settings
 from .models.audio_segment import AudioSegment
@@ -32,14 +33,21 @@ def preprocess(filename: str) -> List[AudioSegment]:
     right_file = path.join(settings.UPLOAD_DIR, f"right_{filename}")
 
     convert_to_wav(infile_path, format_file)
-    split_by_channels(format_file, left_file, right_file)
 
+    # split the file to smaller audio segments. If there is only 1 channel
+    # => that is for customer
     audio_segments = []
-    audio_segments.extend(do_vad_split(left_file, 1))
-    audio_segments.extend(do_vad_split(right_file, 2))
+    num_channels = get_num_channels(format_file)
+    logger.info(f"Number of channels detected: {num_channels}")
+    if num_channels > 1:
+        split_by_channels(format_file, left_file, right_file)
+        audio_segments.extend(do_vad_split(left_file, 1))
+        audio_segments.extend(do_vad_split(right_file, 2))
+    else:
+        audio_segments.extend(do_vad_split(infile_path, 2))
     audio_segments = sorted(audio_segments, key=lambda x: x.timestamp, reverse=False)
 
-    return audio_segments
+    return audio_segments, num_channels
 
 
 def do_stt_and_extract_info(
@@ -47,7 +55,9 @@ def do_stt_and_extract_info(
     audio_segment: AudioSegment = None,
     current_text: Dict[str, str] = None,
     criteria: Dict = None,
+    is_voice_message: bool = False,
 ) -> str:
+    # TODO: refactoring
     if not path.exists(audio_segment.audio_file):
         raise ValueError(f"Path {audio_segment.audio_file} does not exist")
 
@@ -57,38 +67,45 @@ def do_stt_and_extract_info(
     if not output_text:
         return current_text, criteria
 
-    if audio_segment.channel == 1 and ("tên" in output_text or "họ tên" in output_text):
+    if is_voice_message:
+        start_checking = True
+
+        # always try detecting name, phone if voice message
+        criteria["detect_name"] = True
+        criteria["detect_phone"] = True
+    else:
+        # should be strict when agent ask
+        start_checking = audio_segment.channel == 1
+
+    if start_checking and ("tên" in output_text or "họ tên" in output_text):
         logger.info("Agent start asking `NAME`")
         criteria["detect_name"] = True
 
-    if audio_segment.channel == 1 and "địa chỉ" in output_text:
+    if start_checking and "địa chỉ" in output_text:
         logger.info("Agent starts asking `ADDRESS`")
         criteria["detect_address"] = True
 
-    if audio_segment.channel == 1 and (
-        "chứng minh" in output_text or "căn cước" in output_text
-    ):
+    if start_checking and ("chứng minh" in output_text or "căn cước" in output_text):
         logger.info("Agent starts asking `ID`")
         criteria["detect_id"] = True
 
-    if audio_segment.channel == 1 and "số điện thoại" in output_text:
+    if start_checking and "số điện thoại" in output_text:
         logger.info("Agent starts asking `PHONE_NUMBER`")
         criteria["detect_phone"] = True
 
     # Only save the entire text when the signal is on. Otherwise, keep it as
     # blank
-    if criteria['detect_name']:
+    if criteria["detect_name"]:
         current_text["names"] = " ".join([current_text["names"], output_text])
 
-    if criteria['detect_address']:
+    if criteria["detect_address"]:
         current_text["addresses"] = " ".join([current_text["addresses"], output_text])
 
-    if criteria['detect_id']:
+    if criteria["detect_id"]:
         current_text["id"] = " ".join([current_text["id"], output_text])
 
-    if criteria['detect_phone']:
+    if criteria["detect_phone"]:
         current_text["phone"] = " ".join([current_text["phone"], output_text])
-
 
     # attempt to extract customer info from current sentence and the entire sentence
     customer_info = extract_customer_info(output_text, criteria=criteria)

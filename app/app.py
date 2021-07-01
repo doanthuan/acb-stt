@@ -45,7 +45,7 @@ def uploadFile():
 
         # preprocess, split audio by sentences
         # app.logger.info("start processing uploaded file")
-        audio_segments = preprocess(filename)
+        audio_segments, num_channels = preprocess(filename)
 
         criteria = {
             "detect_name": False,
@@ -54,6 +54,15 @@ def uploadFile():
             "detect_phone": False,
             # more fields
         }
+
+        if num_channels > 2:
+            raise ValueError("Cannot handle audio which has number of channels >=2")
+
+        # If customer leaves a voice message ==> recognize all
+        is_voice_message = False
+        if num_channels == 1:
+            is_voice_message = True
+
         agent_text = {"names": "", "addresses": "", "id": "", "phone": ""}
         customer_text = {"names": "", "addresses": "", "id": "", "phone": ""}
         for segment in audio_segments:
@@ -63,6 +72,7 @@ def uploadFile():
                     audio_segment=segment,
                     current_text=agent_text,
                     criteria=criteria,
+                    is_voice_message=is_voice_message,
                 )
             else:
                 customer_text, criteria = do_stt_and_extract_info(
@@ -70,6 +80,7 @@ def uploadFile():
                     audio_segment=segment,
                     current_text=customer_text,
                     criteria=criteria,
+                    is_voice_message=is_voice_message,
                 )
         stop_call(call_id, filename)
 

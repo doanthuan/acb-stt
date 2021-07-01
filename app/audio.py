@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import subprocess
 from typing import List
 
@@ -145,9 +146,15 @@ def do_vad_split(infile: str, channel: int) -> List[AudioSegment]:
             )
         )
     return res
-    # audio_files = glob.glob(f"{file_splits[0]}_*")
-    # audio_files.sort()
-    # return audio_files
+
+
+def get_num_channels(infile: str) -> int:
+    output = subprocess.run(
+        ["ffprobe", infile], stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+    )
+    filter_output = re.findall(r"\d channels", output.stdout.decode("utf-8"))
+    if len(filter_output) > 0:
+        return int(filter_output[0].split(" ")[0])
 
 
 def process_audio_sentence(input_sen, channel, call_id, customer_text_sum="") -> str:

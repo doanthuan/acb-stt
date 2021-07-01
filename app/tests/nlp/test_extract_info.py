@@ -1,7 +1,8 @@
 from trankit import Pipeline
 
+from app.constant import ID_REGEX
 from app.models.ner import NerType
-from app.nlp import extract_customer_info
+from app.nlp import expand_number, extract_customer_info, extract_info
 from app.tests.utils import extract_tokens
 
 
@@ -144,6 +145,18 @@ def test_recognize_phone_number():
         },
     )
     assert "0974376680" in cust_info["phoneNumber"]
+
+
+def test_expand_number():
+    text = "3 số 0 2 4 0"
+    expand_text = expand_number(text)
+    assert "000 2 4 0" == expand_text
+
+
+def test_id_pattern():
+    text = "068084000240"
+    phone = extract_info(ID_REGEX, text)
+    assert text == phone
 
 
 def test_ner(pipeline: Pipeline):

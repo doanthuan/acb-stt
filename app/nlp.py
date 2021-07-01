@@ -5,8 +5,8 @@ from typing import Dict, List, Tuple, Union
 from trankit import Pipeline
 
 from .config import settings
-from .constant import (BAD_WORDS, ID_REGEX, ID_REGEX_OLD, NUMERIC_MAPPINGS,
-                       PHONE_REGEX)
+from .constant import (BAD_WORDS, DIGITS, ID_REGEX, ID_REGEX_OLD,
+                       NUMERIC_MAPPINGS, PHONE_REGEX)
 
 logger = logging.getLogger(__name__)
 p = Pipeline(lang="vietnamese", gpu=False, cache_dir=settings.CACHE_DIR)
@@ -88,7 +88,7 @@ def extract_customer_info_dict(text: Dict, criteria) -> Dict:
 
 
 def extract_customer_info_str(text: str, criteria: Dict) -> Dict:
-    """ Doing entities regconition """
+    """Doing entities regconition"""
     customer_info = {
         "nameList": "",
         "addressList": "",
@@ -119,16 +119,52 @@ def extract_customer_info_str(text: str, criteria: Dict) -> Dict:
         customer_info["addressList"] = ",".join(addresses)
 
     text = re.sub("|".join(BAD_WORDS), "", text)
+    text = expand_number(text)
+    text = re.sub(r"\s", "", text)
     print(f'Scanning ID & Phone number for text="{text}"')
     if criteria.get("detect_id") is True:
         customer_info["idNumber"] = extract_info(ID_REGEX, text)
         if customer_info["idNumber"] == "":
             customer_info["idNumber"] = extract_info(ID_REGEX_OLD, text)
 
+            # this can be tricky as the old-id-pattern matches can contain
+            # non-numeric character. It's needed to remove them
+            if len(customer_info["idNumber"]) > 9:
+                customer_info["idNumber"] = customer_info["idNumber"][:10]
+
     if criteria.get("detect_phone") is True:
+        print("Detect phone: text={text} ...")
         customer_info["phoneNumber"] = extract_info(PHONE_REGEX, text)
 
     return customer_info
+
+
+def is_digit(word):
+    return word in DIGITS
+
+
+def expand_number(text):
+    if "số" not in text:
+        return text
+
+    words = text.split(" ")
+    res = []
+    i = 0
+    words_len = len(words)
+    while i < words_len:
+        # pattern like: ba số không = 000
+        if (
+            (i < words_len - 2)
+            and is_digit(words[i])
+            and (words[i + 1] == "số")
+            and is_digit(words[i + 2])
+        ):
+            res.append(int(words[i]) * words[i + 2])
+            i += 3
+        else:
+            res.append(words[i])
+            i += 1
+    return " ".join(res)
 
 
 def extract_identity_info(text: str) -> Dict:
