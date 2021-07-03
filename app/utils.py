@@ -6,7 +6,7 @@ from typing import Dict, List
 import requests
 from flask import request
 
-from .audio import (convert_to_wav, do_vad_split_2, get_num_channels,
+from .audio import (convert_to_wav, do_silero_vad_split, get_num_channels,
                     split_by_channels)
 from .call import send_msg
 from .config import settings
@@ -41,10 +41,10 @@ def preprocess(filename: str) -> List[AudioSegment]:
     logger.info(f"Number of channels detected: {num_channels}")
     if num_channels > 1:
         split_by_channels(format_file, left_file, right_file)
-        audio_segments.extend(do_vad_split_2(left_file, 1))
-        audio_segments.extend(do_vad_split_2(right_file, 2))
+        audio_segments.extend(do_silero_vad_split(left_file, 1))
+        audio_segments.extend(do_silero_vad_split(right_file, 2))
     else:
-        audio_segments.extend(do_vad_split_2(infile_path, 2))
+        audio_segments.extend(do_silero_vad_split(infile_path, 2))
     audio_segments = sorted(audio_segments, key=lambda x: x.timestamp, reverse=False)
 
     return audio_segments, num_channels
@@ -89,7 +89,9 @@ def do_stt_and_extract_info(
         logger.info("Agent starts asking `ID`")
         criteria["detect_id"] = True
 
-    if start_checking and "số điện thoại" in output_text:
+    if start_checking and (
+        "số điện thoại" in output_text or "số di động" in output_text
+    ):
         logger.info("Agent starts asking `PHONE_NUMBER`")
         criteria["detect_phone"] = True
 
@@ -122,14 +124,15 @@ def do_stt_and_extract_info(
         criteria["detect_name"] = False
 
     if customer_info["addressList"] != "" or current_customer_info["addressList"] != "":
-        if criteria.get("detect_address") is True:
-            logger.info("Found address. Reset flag `detect_address`")
-            logger.info("customer_info: {}".format(customer_info["addressList"]))
-            logger.info(
-                "current_customer_info: {}".format(current_customer_info["addressList"])
-            )
-            current_text["addresses"] = ""
-        criteria["detect_address"] = False
+        pass
+        # if criteria.get("detect_address") is True:
+        #     logger.info("Found address. Reset flag `detect_address`")
+        #     logger.info("customer_info: {}".format(customer_info["addressList"]))
+        #     logger.info(
+        #         "current_customer_info: {}".format(current_customer_info["addressList"])
+        #     )
+        #     current_text["addresses"] = ""
+        # criteria["detect_address"] = False
 
     if customer_info["idNumber"] != "" or current_customer_info["idNumber"] != "":
         if criteria.get("detect_id") is True:

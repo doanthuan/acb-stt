@@ -52,6 +52,7 @@ def vad_collector(sample_rate, frame_duration_ms, padding_duration_ms, vad, fram
     # We have two states: TRIGGERED and NOTTRIGGERED. We start in the
     # NOTTRIGGERED state.
     triggered = False
+    CUTOFF = 0.8
 
     voiced_frames = []
     for frame in frames:
@@ -63,7 +64,7 @@ def vad_collector(sample_rate, frame_duration_ms, padding_duration_ms, vad, fram
             # If we're NOTTRIGGERED and more than 90% of the frames in
             # the ring buffer are voiced frames, then enter the
             # TRIGGERED state.
-            if num_voiced > 0.9 * ring_buffer.maxlen:
+            if num_voiced > CUTOFF * ring_buffer.maxlen:
                 triggered = True
                 # We want to yield all the audio we see from now until
                 # we are NOTTRIGGERED, but we have to start with the
@@ -80,7 +81,7 @@ def vad_collector(sample_rate, frame_duration_ms, padding_duration_ms, vad, fram
             # If more than 90% of the frames in the ring buffer are
             # unvoiced, then enter NOTTRIGGERED and yield whatever
             # audio we've collected.
-            if num_unvoiced > 0.9 * ring_buffer.maxlen:
+            if num_unvoiced > CUTOFF * ring_buffer.maxlen:
                 triggered = False
                 yield Frame(
                     b"".join([f.bytes for f in voiced_frames]),

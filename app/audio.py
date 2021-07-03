@@ -10,9 +10,12 @@ import webrtcvad
 
 from .config import settings
 from .models.audio_segment import AudioSegment
+from .silero.utils import (get_speech_ts_adaptive, init_jit_model, read_audio,
+                           save_audio)
 from .vad import frame_generator, vad_collector
 
 logger = logging.getLogger(__name__)
+
 
 
 def convert_to_wav(infile: str, outfile: str):
@@ -53,6 +56,28 @@ def resample_audio_file(infile: str, outfile: str):
             "-y",
         ]
     )
+
+
+def do_silero_vad_split(infile: str, channel: int) -> List[AudioSegment]:
+    resampled_file = "resampled_" + os.path.basename(infile)
+    resampled_file = os.path.join(settings.UPLOAD_DIR, resampled_file)
+
+    # resample audio file at 16khz, with/without noise reduction
+    resample_audio_file(infile, resampled_file)
+    in_wav = read_audio(resampled_file)
+
+    silero_model = init_jit_model(settings.SILERO_MODEL)
+    speech_timestamps = get_speech_ts_adaptive(in_wav, silero_model)
+
+    res = []
+    filename = os.path.splitext(resampled_file)[0]
+    for i, ts in enumerate(speech_timestamps):
+        path = f"{filename}_chunk_{i:003}.wav"
+        save_audio(path, in_wav[ts["start"] : ts["end"]], 16000)
+        res.append(
+            AudioSegment(timestamp=ts["start"], channel=channel, audio_file=path)
+        )
+    return res
 
 
 def do_vad_split_2(infile: str, channel: int) -> List[AudioSegment]:
