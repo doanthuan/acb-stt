@@ -50,8 +50,8 @@ def resample_audio_file(infile: str, outfile: str):
             "16000",
             "-af",
             # "highpass=f=200,lowpass=f=3000",
-            "highpass=f=200,lowpass=f=3000,afftdn=nt=w:om=o",
-            # "aresample=resampler=soxr:precision=30:cheby=1,highpass=f=200,lowpass=f=3000,afftdn=nt=w:om=o",
+            # "highpass=f=200,lowpass=f=3000,afftdn=nt=w:om=o",
+            "aresample=resampler=soxr:precision=30:cheby=1,highpass=f=200,lowpass=f=3000,afftdn=nt=w:om=o",
             outfile,
             "-y",
         ]
@@ -80,7 +80,7 @@ def do_silero_vad_split(infile: str, channel: int) -> List[AudioSegment]:
     return res
 
 
-def do_vad_split_2(infile: str, channel: int) -> List[AudioSegment]:
+def do_webrtcvad_split(infile: str, channel: int) -> List[AudioSegment]:
     resampled_file = "resampled_" + os.path.basename(infile)
     resampled_file = os.path.join(settings.UPLOAD_DIR, resampled_file)
 

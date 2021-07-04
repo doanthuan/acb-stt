@@ -11,7 +11,7 @@ def get_logging_config() -> Dict:
         "disable_existing_loggers": False,
         "formatters": {
             "default": {
-                "format": "[%(asctime)s] [%(module)s] %(levelname)s: %(message)s"
+                "format": "[%(asctime)s][%(module)s][%(levelname)s] - %(message)s"
             }
         },
         "handlers": {
