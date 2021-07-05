@@ -135,7 +135,7 @@ def extract_customer_info_str(text: str, criteria: Dict) -> Dict:
                 customer_info["idNumber"] = customer_info["idNumber"][:9]
 
     if criteria.get("detect_phone") is True:
-        print("Detect phone: text={text} ...")
+        print(f"Detect phone: text={text} ...")
         customer_info["phoneNumber"] = extract_info(PHONE_REGEX, text)
 
     return customer_info

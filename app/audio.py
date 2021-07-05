@@ -30,14 +30,29 @@ def split_by_channels(infile: str, left_outfile: str, right_outfile: str):
             "ffmpeg",
             "-i",
             infile,
-            "-map_channel",
-            "0.0.0",
+            "-filter_complex",
+            "[0:a]channelsplit=channel_layout=stereo[left][right]",
+            "-map",
+            "[left]",
             left_outfile,
-            "-map_channel",
-            "0.0.1",
+            "-map",
+            "[right]",
             right_outfile,
         ]
     )
+    # subprocess.check_call(
+    #     [
+    #         "ffmpeg",
+    #         "-i",
+    #         infile,
+    #         "-map_channel",
+    #         "0.0.0",
+    #         left_outfile,
+    #         "-map_channel",
+    #         "0.0.1",
+    #         right_outfile,
+    #     ]
+    # )
 
 
 def resample_audio_file(infile: str, outfile: str):
@@ -48,10 +63,12 @@ def resample_audio_file(infile: str, outfile: str):
             infile,
             "-ar",
             "16000",
+            "-ac",
+            "1",
             "-af",
             # "highpass=f=200,lowpass=f=3000",
             # "highpass=f=200,lowpass=f=3000,afftdn=nt=w:om=o",
-            "aresample=resampler=soxr:precision=30:cheby=1,highpass=f=200,lowpass=f=3000,afftdn=nt=w:om=o",
+            "aresample=resampler=soxr:precision=33:cheby=1,highpass=f=200,lowpass=f=3000,afftdn=nt=w:om=o",
             outfile,
             "-y",
         ]
