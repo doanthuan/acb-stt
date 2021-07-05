@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 def convert_to_wav(infile: str, outfile: str):
     subprocess.check_call(
-        ["ffmpeg", "-i", infile, "-acodec", "pcm_s16le", outfile, "-y"]
+        ["ffmpeg", "-hide_banner", "-loglevel","error","-i", infile, "-acodec", "pcm_s16le", outfile, "-y"]
     )
 
 
@@ -28,6 +28,9 @@ def split_by_channels(infile: str, left_outfile: str, right_outfile: str):
     subprocess.check_call(
         [
             "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
             "-i",
             infile,
             "-filter_complex",
@@ -59,6 +62,9 @@ def resample_audio_file(infile: str, outfile: str):
     subprocess.call(
         [
             "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
             "-i",
             infile,
             "-ar",
