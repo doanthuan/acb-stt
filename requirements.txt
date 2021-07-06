@@ -6,6 +6,8 @@
 #
 certifi==2020.12.5
     # via requests
+cffi==1.14.5
+    # via soundfile
 chardet==4.0.0
     # via requests
 click==7.1.2
@@ -54,6 +56,8 @@ packaging==20.9
     # via trankit
 protobuf==3.17.0
     # via trankit
+pycparser==2.20
+    # via cffi
 pydantic==1.8.2
     # via -r requirements.in
 pyparsing==2.4.7
@@ -77,10 +81,16 @@ six==1.16.0
     #   flask-cors
     #   protobuf
     #   sacremoses
+soundfile==0.8.1
+    # via -r requirements.in
 tokenizers==0.10.2
     # via trankit
 torch==1.7.1
-    # via trankit
+    # via
+    #   torchaudio
+    #   trankit
+torchaudio==0.7.2
+    # via -r requirements.in
 tqdm==4.60.0
     # via
     #   sacremoses

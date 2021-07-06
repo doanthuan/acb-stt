@@ -26,9 +26,13 @@ class Settings(BaseSettings):
     LOG_MAX_COUNTS = env.int("LOG_MAX_COUNTS", 3)
 
     # settings for VAD
+    VAD_CUTOFF = env.float("VAD_CUTOFF", 0.9)
     VAD_AGGRESSIVE_LEVEL = env.int("VAD_AGGRESSIVE_LEVEL", 3)
     FRAME_DURATION_MS = env.int("FRAME_DURATION_MS", 30)
     PADDING_DURATION_MS = env.int("PADDING_DURATION_MS", 250)
+
+    # silero
+    SILERO_MODEL = env.str("SILERO_MODEL", "models/silero.jit")
 
 
 settings = Settings()

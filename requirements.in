@@ -2,7 +2,7 @@ flask
 flask_cors
 requests
 joblib
-trankit
+trankit==1.0.1
 pydantic
 environs
 gunicorn
@@ -10,3 +10,5 @@ uvicorn
 httptools
 waitress
 webrtcvad
+soundfile==0.8.1
+torchaudio==0.7.2
