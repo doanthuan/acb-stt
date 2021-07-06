@@ -10,7 +10,7 @@ from .constant import (BAD_WORDS, DIGITS, ID_REGEX, ID_REGEX_OLD,
 
 logger = logging.getLogger(__name__)
 #p = Pipeline(lang="vietnamese", gpu=False, cache_dir=settings.CACHE_DIR)
-p = Pipeline(lang='customized-ner', cache_dir='./save_dir')
+p = Pipeline(lang='customized-ner', gpu=False, cache_dir=settings.CACHE_DIR)
 
 def parse_name_entity(text: str) -> Tuple[List[str], List[str]]:
     text = num_mapping(text)
