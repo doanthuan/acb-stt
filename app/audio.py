@@ -25,6 +25,24 @@ def convert_to_wav(infile: str, outfile: str):
 
 
 def split_by_channels(infile: str, left_outfile: str, right_outfile: str):
+    # subprocess.check_call(
+    #     [
+    #         "ffmpeg",
+    #         "-hide_banner",
+    #         "-loglevel",
+    #         "error",
+    #         "-i",
+    #         infile,
+    #         "-filter_complex",
+    #         "[0:a]channelsplit=channel_layout=stereo[left][right]",
+    #         "-map",
+    #         "[left]",
+    #         left_outfile,
+    #         "-map",
+    #         "[right]",
+    #         right_outfile,
+    #     ]
+    # )
     subprocess.check_call(
         [
             "ffmpeg",
@@ -33,29 +51,14 @@ def split_by_channels(infile: str, left_outfile: str, right_outfile: str):
             "error",
             "-i",
             infile,
-            "-filter_complex",
-            "[0:a]channelsplit=channel_layout=stereo[left][right]",
-            "-map",
-            "[left]",
+            "-map_channel",
+            "0.0.0",
             left_outfile,
-            "-map",
-            "[right]",
+            "-map_channel",
+            "0.0.1",
             right_outfile,
         ]
     )
-    # subprocess.check_call(
-    #     [
-    #         "ffmpeg",
-    #         "-i",
-    #         infile,
-    #         "-map_channel",
-    #         "0.0.0",
-    #         left_outfile,
-    #         "-map_channel",
-    #         "0.0.1",
-    #         right_outfile,
-    #     ]
-    # )
 
 
 def resample_audio_file(infile: str, outfile: str):
@@ -80,6 +83,15 @@ def resample_audio_file(infile: str, outfile: str):
         ]
     )
 
+def denoise_audio(infile: str, outfile: str):
+    subprocess.check_call([
+        "sox",
+        infile,
+        outfile,
+        "noisered",
+        settings.NOISE_PROFILE,
+        str(settings.NOISE_SENSITIVITY)
+    ])
 
 def do_silero_vad_split(infile: str, channel: int) -> List[AudioSegment]:
     resampled_file = "resampled_" + os.path.basename(infile)

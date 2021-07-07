@@ -34,5 +34,8 @@ class Settings(BaseSettings):
     # silero
     SILERO_MODEL = env.str("SILERO_MODEL", "models/silero.jit")
 
+    NOISE_PROFILE = env.str("NOISE_PROFILE", "noise.prof")
+    NOISE_SENSITIVITY = env.float("NOISE_SENSITIVITY", 0.21)
+
 
 settings = Settings()
