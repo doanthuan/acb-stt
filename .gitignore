@@ -12,3 +12,6 @@ save_dir/
 run.sh
 logs
 .env
+app/save_dir/
+models/
+ner/save_dir/
