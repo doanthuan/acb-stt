@@ -6,6 +6,7 @@ test/
 .vscode/
 asset/
 cache/
+save_dir/
 .mypy_cache
 .DS_Store
 run.sh
