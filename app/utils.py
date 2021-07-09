@@ -6,8 +6,8 @@ from typing import Dict, List
 import requests
 from flask import request
 
-from .audio import (convert_to_wav, do_silero_vad_split, get_num_channels, do_webrtcvad_split,
-                    denoise_audio, do_vad_split, split_by_channels)
+from .audio import (convert_to_wav, do_vad_split, get_num_channels,
+                    split_by_channels)
 from .call import send_msg
 from .config import settings
 from .models.audio_segment import AudioSegment
@@ -40,13 +40,13 @@ def preprocess(filename: str) -> List[AudioSegment]:
     num_channels = get_num_channels(format_file)
     logger.info(f"Number of channels detected: {num_channels}")
     if num_channels > 1:
-        logger.info('split audio to 2 channels')
+        logger.info("split audio to 2 channels")
         split_by_channels(format_file, left_file, right_file)
         # denoise_audio(left_file, left_file)
         audio_segments.extend(do_vad_split(left_file, 1))
         audio_segments.extend(do_vad_split(right_file, 2))
     else:
-        logger.info('skip splitting by channels as there is only 1 channel')
+        logger.info("skip splitting by channels as there is only 1 channel")
         audio_segments.extend(do_vad_split(format_file, 2))
     audio_segments = sorted(audio_segments, key=lambda x: x.timestamp, reverse=False)
 

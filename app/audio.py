@@ -17,10 +17,20 @@ from .vad import frame_generator, vad_collector
 logger = logging.getLogger(__name__)
 
 
-
 def convert_to_wav(infile: str, outfile: str):
     subprocess.check_call(
-        ["ffmpeg", "-hide_banner", "-loglevel","error","-i", infile, "-acodec", "pcm_s16le", outfile, "-y"]
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-i",
+            infile,
+            "-acodec",
+            "pcm_s16le",
+            outfile,
+            "-y",
+        ]
     )
 
 
@@ -83,15 +93,19 @@ def resample_audio_file(infile: str, outfile: str):
         ]
     )
 
+
 def denoise_audio(infile: str, outfile: str):
-    subprocess.check_call([
-        "sox",
-        infile,
-        outfile,
-        "noisered",
-        settings.NOISE_PROFILE,
-        str(settings.NOISE_SENSITIVITY)
-    ])
+    subprocess.check_call(
+        [
+            "sox",
+            infile,
+            outfile,
+            "noisered",
+            settings.NOISE_PROFILE,
+            str(settings.NOISE_SENSITIVITY),
+        ]
+    )
+
 
 def do_silero_vad_split(infile: str, channel: int) -> List[AudioSegment]:
     resampled_file = "resampled_" + os.path.basename(infile)
