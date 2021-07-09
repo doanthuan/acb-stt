@@ -194,6 +194,10 @@ ha O
 thanh I-PER 
 trung I-PER 
 
+phan B-PER
+thành I-PER
+trung I-PER
+
 nguyễn B-PER 
 thị I-PER 
 như I-PER 
@@ -571,6 +575,10 @@ mình O
 là O 
 thư I-PER 
 
+hoàng B-PER
+anh I-PER
+thư I-PER
+
 chào O 
 anh O 
 tuấn I-PER 
@@ -632,6 +640,10 @@ nguyễn B-PER
 quang I-PER 
 thịnh I-PER 
 em O 
+
+nguyễn B-PER 
+quang I-PER 
+thạnh I-PER 
 
 anh O 
 ca O 
@@ -890,3 +902,53 @@ tên O
 phan B-PER 
 thị I-PER 
 là I-PER 
+
+hà B-PER
+anh I-PER
+trúc I-PER
+
+hồi O
+nãy O
+thao O
+tác O
+nhập O
+xong O
+thông O
+tin O
+là O
+báo O
+lỗi O
+luôn O
+hả O
+trúc I-PER
+hả O
+
+9/8L O 
+phạm I-LOC 
+văn I-LOC 
+hai I-LOC 
+phường I-LOC 
+1 I-LOC 
+quận I-LOC 
+tân I-LOC 
+bình I-LOC 
+
+114/7 O 
+tân I-LOC 
+kỳ I-LOC 
+tân I-LOC 
+phú I-LOC 
+quận I-LOC 
+tân I-LOC 
+phú I-LOC 
+
+42/34 O 
+E O 
+hoàng I-LOC 
+hoa I-LOC 
+thám I-LOC 
+phường I-LOC 
+7 I-LOC 
+quận I-LOC 
+bình I-LOC 
+thạnh I-LOC

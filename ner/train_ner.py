@@ -3,7 +3,7 @@ import trankit
 # initialize a trainer for the task
 trainer = trankit.TPipeline(
     training_config={
-    'max_epoch': 50,
+    # 'max_epoch': 50,
     'category': 'customized-ner',  # pipeline category
     'task': 'ner', # task name
     'save_dir': './save_dir', # directory to save the trained model

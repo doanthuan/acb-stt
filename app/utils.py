@@ -100,11 +100,11 @@ def do_stt_and_extract_info(
 
     # Only save the entire text when the signal is on. Otherwise, keep it as
     # blank
-    if criteria["detect_name"]:
-        current_text["names"] = " ".join([current_text["names"], output_text])
+    # if criteria["detect_name"]:
+    #     current_text["names"] = " ".join([current_text["names"], output_text])
 
-    if criteria["detect_address"]:
-        current_text["addresses"] = " ".join([current_text["addresses"], output_text])
+    # if criteria["detect_address"]:
+    #     current_text["addresses"] = " ".join([current_text["addresses"], output_text])
 
     if criteria["detect_id"]:
         current_text["id"] = " ".join([current_text["id"], output_text])
@@ -127,14 +127,13 @@ def do_stt_and_extract_info(
         criteria["detect_name"] = False
 
     if customer_info["addressList"] != "" or current_customer_info["addressList"] != "":
-        pass
-        # if criteria.get("detect_address") is True:
-        #     logger.info("Found address. Reset flag `detect_address`")
-        #     logger.info("customer_info: {}".format(customer_info["addressList"]))
-        #     logger.info(
-        #         "current_customer_info: {}".format(current_customer_info["addressList"])
-        #     )
-        #     current_text["addresses"] = ""
+        if criteria.get("detect_address") is True:
+            logger.info("Found address. Reset flag `detect_address`")
+            logger.info("customer_info: {}".format(customer_info["addressList"]))
+            logger.info(
+                "current_customer_info: {}".format(current_customer_info["addressList"])
+            )
+            current_text["addresses"] = ""
         # criteria["detect_address"] = False
 
     if customer_info["idNumber"] != "" or current_customer_info["idNumber"] != "":

@@ -5,7 +5,7 @@ from typing import Dict, List, Tuple, Union
 from trankit import Pipeline
 
 from .config import settings
-from .constant import (BAD_WORDS, DIGITS, ID_REGEX, ID_REGEX_OLD,
+from .constant import (BAD_WORDS, DIGITS, ID_REGEX, ID_REGEX_OLD, BAD_NAMES,
                        NUMERIC_MAPPINGS, PHONE_REGEX)
 
 logger = logging.getLogger(__name__)
@@ -41,9 +41,12 @@ def extract_info_from_ner(ner_output: Dict, tag: str) -> List[str]:
     res = []
     sentences = ner_output["sentences"]
     for sentence in sentences:
+        single_ent = []
         for token in sentence["tokens"]:
             if tag in token["ner"]:
-                res.append(token["text"])
+                single_ent.append(token["text"])
+        if len(single_ent) > 0:
+            res.append(" ".join(single_ent))
     return res
 
 
@@ -110,6 +113,7 @@ def extract_customer_info_str(text: str, criteria: Dict) -> Dict:
         if ner_output == "":
             ner_output = p.ner(text)
         names = extract_info_from_ner(ner_output, tag="PER")
+        names = [name for name in names if name not in BAD_NAMES]
         customer_info["nameList"] = ",".join(names)
 
     if criteria.get("detect_address") is True:
@@ -118,6 +122,7 @@ def extract_customer_info_str(text: str, criteria: Dict) -> Dict:
             ner_output = p.ner(text)
 
         addresses = extract_info_from_ner(ner_output, tag="LOC")
+        addresses = [addr for addr in addresses if addr not in BAD_NAMES]
         customer_info["addressList"] = ",".join(addresses)
 
     text = re.sub("|".join(BAD_WORDS), "", text)
