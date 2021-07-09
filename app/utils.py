@@ -53,6 +53,13 @@ def preprocess(filename: str) -> List[AudioSegment]:
     return audio_segments, num_channels
 
 
+def contains_keyword(keywords: List[str], text: str) -> bool:
+    for keyword in keywords:
+        if keyword in text:
+            return True
+    return False
+
+
 def do_stt_and_extract_info(
     call_id: int = None,
     audio_segment: AudioSegment = None,
@@ -80,32 +87,31 @@ def do_stt_and_extract_info(
         # should be strict when agent ask
         start_checking = audio_segment.channel == 1
 
-    if start_checking and ("tên" in output_text or "họ tên" in output_text):
+    if start_checking and contains_keyword(["tên họ", "họ tên", "tên gì"], output_text):
         logger.info("Agent start asking `NAME`")
         criteria["detect_name"] = True
 
-    if start_checking and "địa chỉ" in output_text:
+    # HACK: sometimes, customer introduces the name before-hand
+    # if audio_segment.channel == 2 and contains_keyword(["mình là"], output_text):
+    #     logger.info("Customer introduces himself/herself")
+    #     criteria["detect_name"] = True
+
+    if start_checking and contains_keyword(["địa chỉ"], output_text):
         logger.info("Agent starts asking `ADDRESS`")
         criteria["detect_address"] = True
 
-    if start_checking and ("chứng minh" in output_text or "căn cước" in output_text):
+    if start_checking and contains_keyword(["chứng minh", "căn cước"], output_text):
         logger.info("Agent starts asking `ID`")
         criteria["detect_id"] = True
 
-    if start_checking and (
-        "số điện thoại" in output_text or "số di động" in output_text
+    if start_checking and contains_keyword(
+        ["số điện thoại", "số di động"], output_text
     ):
         logger.info("Agent starts asking `PHONE_NUMBER`")
         criteria["detect_phone"] = True
 
-    # Only save the entire text when the signal is on. Otherwise, keep it as
-    # blank
-    # if criteria["detect_name"]:
-    #     current_text["names"] = " ".join([current_text["names"], output_text])
-
-    # if criteria["detect_address"]:
-    #     current_text["addresses"] = " ".join([current_text["addresses"], output_text])
-
+    # Only save the entire text when the signal for detect `ID`, `PHONE`is on.
+    # Otherwise, keep it as blank
     if criteria["detect_id"]:
         current_text["id"] = " ".join([current_text["id"], output_text])
 
@@ -134,6 +140,7 @@ def do_stt_and_extract_info(
                 "current_customer_info: {}".format(current_customer_info["addressList"])
             )
             current_text["addresses"] = ""
+        # Keep `detect_address` ON will handle the cases that addresses in multiple sentences
         # criteria["detect_address"] = False
 
     if customer_info["idNumber"] != "" or current_customer_info["idNumber"] != "":

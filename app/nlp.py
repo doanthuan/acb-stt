@@ -5,7 +5,7 @@ from typing import Dict, List, Tuple, Union
 from trankit import Pipeline
 
 from .config import settings
-from .constant import (BAD_WORDS, DIGITS, ID_REGEX, ID_REGEX_OLD, BAD_NAMES,
+from .constant import (BAD_NAMES, BAD_WORDS, DIGITS, ID_REGEX, ID_REGEX_OLD,
                        NUMERIC_MAPPINGS, PHONE_REGEX)
 
 logger = logging.getLogger(__name__)
@@ -91,6 +91,13 @@ def extract_customer_info_dict(text: Dict, criteria) -> Dict:
     return res
 
 
+def is_blacklist(text: str, blacklist: List[str]) -> bool:
+    for word in blacklist:
+        if word in text:
+            return True
+    return False
+
+
 def extract_customer_info_str(text: str, criteria: Dict) -> Dict:
     """Doing entities regconition"""
     customer_info = {
@@ -106,7 +113,6 @@ def extract_customer_info_str(text: str, criteria: Dict) -> Dict:
     # Extract customer info. To do that more accurately, text needs
     # to be preprocess such as convert to number, remove bad words that affects
     # the pattern matching
-    text = num_mapping(text)
     print(f'Scanning Named Identity for text="{text}"')
 
     ner_output = ""
@@ -114,18 +120,17 @@ def extract_customer_info_str(text: str, criteria: Dict) -> Dict:
         if ner_output == "":
             ner_output = p.ner(text)
         names = extract_info_from_ner(ner_output, tag="PER")
-        names = [name for name in names if name not in BAD_NAMES]
+        names = [name for name in names if not is_blacklist(name, BAD_NAMES)]
         customer_info["nameList"] = ",".join(names)
 
     if criteria.get("detect_address") is True:
-        if ner_output == "":
-            text = process_address_input(text)
-            ner_output = p.ner(text)
-
+        text = process_address_input(text)
+        ner_output = p.ner(text)
         addresses = extract_info_from_ner(ner_output, tag="LOC")
-        addresses = [addr for addr in addresses if addr not in BAD_NAMES]
+        addresses = [addr for addr in addresses if not is_blacklist(addr, BAD_NAMES)]
         customer_info["addressList"] = ",".join(addresses)
 
+    text = num_mapping(text)
     text = re.sub("|".join(BAD_WORDS), "", text)
     text = expand_number(text)
     text = re.sub(r"\s", "", text)
@@ -149,6 +154,7 @@ def extract_customer_info_str(text: str, criteria: Dict) -> Dict:
 
 def process_address_input(in_text: str) -> str:
     # TODO: more cases to handle
+    in_text = num_mapping(in_text)
     for word in [" xẹt ", " xuyệc ", " xuyệt "]:
         in_text = in_text.replace(word, " / ")
     return in_text

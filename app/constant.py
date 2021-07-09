@@ -32,4 +32,22 @@ NUMERIC_MAPPINGS = {
 
 DIGITS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
-BAD_NAMES = ["ừm", "y", "tế", "sẽ"]
+BAD_NAMES = [
+    "họ",
+    "có",
+    "chứng minh",
+    "lăm",
+    "dạ",
+    "tông",
+    "tán",
+    "công ty",
+    "tứ",
+    "lão",
+    "ừm",
+    "y",
+    "tế",
+    "sẽ",
+    "ấn",
+    "dậy",
+    "rút",
+]
