@@ -56,6 +56,42 @@
       .checked {
         color: orange;
       }
+
+      .spinner {
+        position: absolute;
+        left: 50%;
+        top: 60%;
+        height:60px;
+        width:60px;
+        margin:0px auto;
+        -webkit-animation: rotation .6s infinite linear;
+        -moz-animation: rotation .6s infinite linear;
+        -o-animation: rotation .6s infinite linear;
+        animation: rotation .6s infinite linear;
+        border-left:6px solid rgba(0,174,239,.15);
+        border-right:6px solid rgba(0,174,239,.15);
+        border-bottom:6px solid rgba(0,174,239,.15);
+        border-top:6px solid rgba(0,174,239,.8);
+        border-radius:100%;
+        z-index: 1000;
+      }
+      @-webkit-keyframes rotation {
+        from {-webkit-transform: rotate(0deg);}
+        to {-webkit-transform: rotate(359deg);}
+      }
+      @-moz-keyframes rotation {
+        from {-moz-transform: rotate(0deg);}
+        to {-moz-transform: rotate(359deg);}
+      }
+      @-o-keyframes rotation {
+        from {-o-transform: rotate(0deg);}
+        to {-o-transform: rotate(359deg);}
+      }
+      @keyframes rotation {
+        from {transform: rotate(0deg);}
+        to {transform: rotate(359deg);}
+      }
+      
       
 
     </style>
@@ -70,17 +106,16 @@
         <h2>STT Demo For ACB</h2>
         <br/><br/>
         <ul class="nav nav-pills nav-justified">
-          <li class="active"><a data-toggle="pill" href="#record">Record Audio</a></li>
-          <li ><a data-toggle="pill" href="#file">Upload File</a></li>
-          
+          <li class="active"><a data-toggle="pill" href="#file">Upload File</a></li>
+          <li ><a data-toggle="pill" href="#record">FTP Server</a></li>
         </ul>
         <br/>
 
         <div class="tab-content">
-          <div id="file" class="tab-pane fade ">
+          <div id="file" class="tab-pane fade in active">
             <form id='recognize-file' enctype="multipart/form-data">
               <div class="input-group">
-                <input type="file" id="input-file" name="input-file" class="form-control" accept="audio/*" required>
+                <input type="file" id="input-file" name="files" class="form-control" accept="audio/*" required multiple>
                 <div class="input-group-btn">
                   <button class="btn btn-primary" type="submit">Upload</button>
                 </div>
@@ -98,8 +133,8 @@
             </div>
           </div>
 
-          <div id="record" class="tab-pane fade in active">
-            <form id='recognize-record' enctype="multipart/form-data">
+          <div id="record" class="tab-pane fade  ">
+            <!-- <form id='recognize-record' enctype="multipart/form-data">
               <div class="btn-group btn-group-justified" role="group">
                 <div class="btn-group" role="group">
                   <button id="record-btn" type="button" class="btn btn-default btn-outline">
@@ -113,7 +148,22 @@
                 </div>
               </div>
               <div id="record-sound-section"></div>
-            </form>
+            </form> -->
+
+              <table id="selected_files">
+                {% for file in ftp_files %}
+                  <tr>
+                    <td width="20px">
+                    <input type="checkbox" name="selected_files" value="{{ file }}"/>
+                  </td>
+                  <td>{{ file }}</td>
+                </tr>
+                {% endfor %}
+              </table>
+              <br/>
+              <button class="btn btn-primary" type="button" id="ftp-upload">Upload</button>
+
+            </div>
             <div id="record-res">
               <div id="record-time"></div>
               <div id="record-upload"></div>
@@ -126,10 +176,10 @@
           </div>
         </div>
 
-        <div class="demo-editor">
+        <!-- <div class="demo-editor">
           Nội dung:<br/>
           <div id="asr-text" disabled="disabled" placeholder="Record, upload file or use audio samples above" class="asr-editor" style="resize: none;">
-        </div>
+        </div> -->
 
 
         </div>
@@ -142,6 +192,8 @@
       </div>
     </div>
 
+    <div class="spinner" style="display: none;"></div>
+
     <script>
       var recordData
 
@@ -151,6 +203,8 @@
 
       var googleRes = "";
       var gruRes = "";
+
+      var file1, file2;
 
       function getError(type) {
         $(`#${type}-time`).html('')
@@ -180,8 +234,8 @@
             data = JSON.parse(data)
             
             // noi dung
-            googleRes = data.result;
-            $("#asr-text").html(googleRes);
+            // googleRes = data.result;
+            // $("#asr-text").html(googleRes);
 
             // //sentiment
             // proba = parseFloat(data.result[1]);
@@ -193,11 +247,14 @@
 
             $(`#${type}-recognize`).html('Recognizing ... <strong>DONE!</strong>')
             //$(`#${type}-upload`).html(`Uploading ... <strong>DONE!</strong> (${response[0]} s)`)
+
+            $(".spinner").hide()
           },
           
           error: function(error) {
             console.log(error)
             getError(type)
+            $(".spinner").hide()
           }
         })
       }
@@ -212,116 +269,164 @@
         }
       }
 
-      $('#record-btn').click(function() {
-        $( this ).css( "background-color", "white" )
-        $('#record-icon').css('color', 'red')
-        $('#stop-icon').css('color', '#333')
-      })
-
-      $('#stop-btn').click(function() {
-        $( this ).css( "background-color", "white" )
-        $('#stop-icon').css('color', 'red')
-        $('#record-icon').css('color', '#333')
-      })
-
-      $('#record-btn').mouseenter(function() {
-        $( this ).css( "background-color", "#e6e6e6" )
-      }).mouseleave(function() {
-        $( this ).css( "background-color", "white" )
-      })
-      
-      $('#stop-btn').mouseenter(function() {
-        $( this ).css( "background-color", "#e6e6e6" )
-      }).mouseleave(function() {
-        $( this ).css( "background-color", "white" )
-      })
-
       $('#input-file').change(function() {
         var input = document.getElementById("input-file")
 
-        file = input.files[0]
-        console.log(file)
-
-        var sound = document.getElementById("file-sound")
-        var reader = new FileReader()
-        reader.onload = function(e) {
-          sound.src = this.result
-          sound.controls = true
+        file1 = input.files[0]
+        if(input.files.length > 1){
+          file2 = input.files[1]
         }
-        reader.readAsDataURL(file)
+        // console.log(file)
+
+        // var sound = document.getElementById("file-sound")
+        // var reader = new FileReader()
+        // reader.onload = function(e) {
+        //   sound.src = this.result
+        //   sound.controls = true
+        // }
+        // reader.readAsDataURL(file)
       })
 
       $("#recognize-file").submit(function( event ) {
         event.preventDefault()
+        $(".spinner").show()
 
         var formdata = new FormData()
-        formdata.append("file", file)
-
+        formdata.append("file", file1)
         runMain('file', formdata)
+
+        if(file2){
+          var formdata2 = new FormData()
+          formdata2.append("file", file2)
+          runMain('file', formdata)
+        }
+        
       })
 
-      navigator.getUserMedia = (  navigator.getUserMedia ||
-                                  navigator.webkitGetUserMedia ||
-                                  navigator.mozGetUserMedia ||
-                                  navigator.msGetUserMedia )
+      var onProgress = 0;
+      $("#ftp-upload").click(function( e ) {
+        e.preventDefault(); // avoid to execute the actual submit of the form.
+        
+        var selected = [];
+        $('#selected_files input[type=checkbox]').each(function() {
+          if ($(this).is(":checked")) {
+              var filename = $(this).attr('value');
+              selected.push(filename);
+              
+          }
+        });
+        
+        if(selected.length > 0){
+          $(".spinner").show()
+        }
 
-      var record = document.querySelector('#record-btn')
-      var stop = document.querySelector('#stop-btn')
-      var audioSection = $('#record-sound-section')
+        for (let i = 0; i < selected.length; i++) {
+          onProgress++;
+          if(onProgress <= 2){
+            filename = selected[i]
+            ftpSubmitFile(filename)
+          }
+        }
+      })
 
-      var audioCtx = new (window.AudioContext || webkitAudioContext)();
-      var cntAudio = 1;
+      function ftpSubmitFile(filename){
+        var url = '/upload-ftp';
+        
+        var formdata = new FormData()
+        formdata.append("filename", filename)
 
-      if (navigator.getUserMedia) {
-        navigator.getUserMedia (
-          // constraints - only audio needed for this app
-          {
-            audio: true
-          },
+        $.ajax({
+              type: "POST",
+              url: url,
+              //data: form.serialize(), // serializes the form's elements.
+              data: formdata,
+              processData: false,
+              contentType: false,
+              success: function(data)
+              {
+                onProgress--;
+                if(onProgress <= 0){
+                  $(`#file-recognize`).html('Recognizing ... <strong>DONE!</strong>')
+                  $(".spinner").hide()
+                }
+              },
+              error: function(error) {
+                console.log(error)
+                onProgress--;
+                if(onProgress <= 0){
+                  $(".spinner").hide()
+                }
+              }
+            });
+      }
 
-          // Success callback
-          function(stream) {
-            var mediaRecorder = new MediaRecorder(stream);
 
-            //visualize(stream);
 
-            record.onclick = function() {
-              mediaRecorder.start();
-              console.log(mediaRecorder.state);
-              console.log("recorder started");
-              //audioSection.html('Recording...')
-            }
+      
 
-            stop.onclick = function() {
-              mediaRecorder.stop();
-              console.log(mediaRecorder.state);
-              console.log("recorder stopped");
-            }
 
-            mediaRecorder.ondataavailable = function(e) {
-              console.log("data available");
+      // navigator.getUserMedia = (  navigator.getUserMedia ||
+      //                             navigator.webkitGetUserMedia ||
+      //                             navigator.mozGetUserMedia ||
+      //                             navigator.msGetUserMedia )
 
-              var clipName = "Audio "+cntAudio;
-              cntAudio++;
+      // // var record = document.querySelector('#record-btn')
+      // var stop = document.querySelector('#stop-btn')
+      // var audioSection = $('#record-sound-section')
 
-              var audioURL = window.URL.createObjectURL(e.data);
+      // var audioCtx = new (window.AudioContext || webkitAudioContext)();
+      // var cntAudio = 1;
 
-              recordData = e.data
+      // if (navigator.getUserMedia) {
+      //   navigator.getUserMedia (
+      //     // constraints - only audio needed for this app
+      //     {
+      //       audio: true
+      //     },
 
-              $("#recognize-record").submit();
+      //     // Success callback
+      //     function(stream) {
+      //       var mediaRecorder = new MediaRecorder(stream);
+
+      //       //visualize(stream);
+
+      //       record.onclick = function() {
+      //         mediaRecorder.start();
+      //         console.log(mediaRecorder.state);
+      //         console.log("recorder started");
+      //         //audioSection.html('Recording...')
+      //       }
+
+      //       stop.onclick = function() {
+      //         mediaRecorder.stop();
+      //         console.log(mediaRecorder.state);
+      //         console.log("recorder stopped");
+      //       }
+
+      //       mediaRecorder.ondataavailable = function(e) {
+      //         console.log("data available");
+
+      //         var clipName = "Audio "+cntAudio;
+      //         cntAudio++;
+
+      //         var audioURL = window.URL.createObjectURL(e.data);
+
+      //         recordData = e.data
+
+      //         $("#recognize-record").submit();
 
               
-            }
-          },
+      //       }
+      //     },
 
-          // Error callback
-          function(err) {
-            console.log('The following gUM error occured: ' + err);
-          }
-        );
-      } else {
-        console.log('getUserMedia not supported on your browser!');
-      }
+      //     // Error callback
+      //     function(err) {
+      //       console.log('The following gUM error occured: ' + err);
+      //     }
+      //   );
+      // } else {
+      //   console.log('getUserMedia not supported on your browser!');
+      // }
 
 
       $("#recognize-record").submit(function( event ) {

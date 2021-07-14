@@ -18,19 +18,21 @@ def start_call() -> None:
     }
 
     r = requests.post(settings.API_URL + "/public/stt/call/start", json=data)
+    logger.info(f'response: {r}')
     json_result = r.json()
     call_id = json_result["model"]["id"]
     logger.info(f"Successfully started the call with ID={call_id}")
     return call_id
 
 
-def stop_call(call_id, audio_file):
+def stop_call(call_id, audio_file, audio_duration):
     data = {
         "id": call_id,
         # "sentiment": str(sentiment[0][0]),
         # "topic": topic
         "endTime": round(time.time() * 1000),
         "audioPath": settings.SITE_URL + "/f/" + audio_file,
+        "audioLength": audio_duration,
     }
     requests.post(settings.API_URL + "/public/stt/call/finish", json=data)
     logger.info(f"Sucessfully stopped the call {call_id}")

@@ -12,3 +12,4 @@ waitress
 webrtcvad
 soundfile==0.8.1
 torchaudio==0.7.2
+pysftp

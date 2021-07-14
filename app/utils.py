@@ -7,7 +7,7 @@ import requests
 from flask import request
 
 from .audio import (convert_to_wav, do_vad_split, get_num_channels,
-                    split_by_channels)
+                    split_by_channels, get_audio_duration)
 from .call import send_msg
 from .config import settings
 from .models.audio_segment import AudioSegment
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 def upload_file() -> str:
     file = request.files["file"]
-    filename = f"uploaded_file_{timeit.default_timer()}.wav"
+    filename = file.filename
     dst_file = path.join(settings.UPLOAD_DIR, filename)
     file.save(dst_file)
     logger.info(f"Upload file done. File save at {dst_file}")
@@ -26,11 +26,13 @@ def upload_file() -> str:
 
 
 def preprocess(filename: str) -> List[AudioSegment]:
+    name = path.splitext(filename)
+
     # TODO: detect number of channels in the audio file for the voicemail
     infile_path = path.join(settings.UPLOAD_DIR, filename)
-    format_file = path.join(settings.UPLOAD_DIR, f"format_{filename}")
-    left_file = path.join(settings.UPLOAD_DIR, f"left_{filename}")
-    right_file = path.join(settings.UPLOAD_DIR, f"right_{filename}")
+    format_file = path.join(settings.UPLOAD_DIR, f"format_{name[0]}.wav")
+    left_file = path.join(settings.UPLOAD_DIR, f"left_{name[0]}.wav")
+    right_file = path.join(settings.UPLOAD_DIR, f"right_{name[0]}.wav")
 
     convert_to_wav(infile_path, format_file)
 
@@ -50,7 +52,9 @@ def preprocess(filename: str) -> List[AudioSegment]:
         audio_segments.extend(do_vad_split(format_file, 2))
     audio_segments = sorted(audio_segments, key=lambda x: x.timestamp, reverse=False)
 
-    return audio_segments, num_channels
+    audio_duration = get_audio_duration(format_file)
+
+    return audio_segments, num_channels, audio_duration
 
 
 def contains_keyword(keywords: List[str], text: str) -> bool:
@@ -210,3 +214,34 @@ def parse_stt_result(json_result: Dict) -> str:
 def join_files(file1: str, file2: str) -> None:
     with open(file1, "ab") as outfile, open(file2, "rb") as infile:
         outfile.write(infile.read())
+
+
+import pysftp, paramiko
+import sys
+
+
+ssh = paramiko.SSHClient()
+# automatically add keys without requiring human intervention
+ssh.set_missing_host_key_policy( paramiko.AutoAddPolicy() )
+ssh.connect(settings.SFTP_HOST, username=settings.SFTP_USER, password=settings.SFTP_PASSWORD)
+
+
+def load_sftp_files():
+    myftp = ssh.open_sftp()
+    try:
+        files = []
+        for filename in myftp.listdir(settings.SFTP_DIR):
+            if filename.endswith((".mp3", ".wav")):
+                files.append(filename)
+        return files
+    finally:
+        if myftp is not None:
+            myftp.close()
+
+def get_sftp_file(filename):
+    myftp = ssh.open_sftp()
+    try:
+        myftp.get(f"{settings.SFTP_DIR}/{filename}", f"{settings.UPLOAD_DIR}/{filename}")
+    finally:
+        if myftp is not None:
+            myftp.close()
