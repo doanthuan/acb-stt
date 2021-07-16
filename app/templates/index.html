@@ -204,8 +204,6 @@
       var googleRes = "";
       var gruRes = "";
 
-      var file1, file2;
-
       function getError(type) {
         $(`#${type}-time`).html('')
         $(`#${type}-progress-bar`).html('')
@@ -269,13 +267,17 @@
         }
       }
 
+      var upload_files = [];
       $('#input-file').change(function() {
         var input = document.getElementById("input-file")
 
-        file1 = input.files[0]
-        if(input.files.length > 1){
-          file2 = input.files[1]
-        }
+        // file1 = input.files[0]
+        // if(input.files.length > 1){
+        //   file2 = input.files[1]
+        // }
+        // debugger;
+
+        upload_files = input.files
         // console.log(file)
 
         // var sound = document.getElementById("file-sound")
@@ -291,14 +293,17 @@
         event.preventDefault()
         $(".spinner").show()
 
-        var formdata = new FormData()
-        formdata.append("file", file1)
-        runMain('file', formdata)
-
-        if(file2){
-          var formdata2 = new FormData()
-          formdata2.append("file", file2)
-          runMain('file', formdata)
+        if(upload_files.length > 0){
+          if(upload_files.length > 4){
+            alert("Maximum 4 audio are allowed")
+          }
+          debugger;
+          var max_length = upload_files.length > 4 ? 4 : upload_files.length;
+          for (let i = 0; i < max_length; i++) {
+            var formdata = new FormData()
+            formdata.append("file", upload_files[i])
+            runMain('file', formdata)
+          }
         }
         
       })

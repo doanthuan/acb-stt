@@ -5,8 +5,10 @@ from typing import Dict, List
 
 import requests
 from flask import request
+import pysftp, paramiko
+import sys
 
-from .audio import (convert_to_wav, do_vad_split, get_num_channels,
+from .audio import (convert_to_wav, do_vad_split, get_num_channels,do_webrtcvad_split,
                     split_by_channels, get_audio_duration)
 from .call import send_msg
 from .config import settings
@@ -18,6 +20,8 @@ logger = logging.getLogger(__name__)
 
 def upload_file() -> str:
     file = request.files["file"]
+    logger.info(f'Upload_file: {request.files["file"]}')
+    logger.info(f'Upload_file: {file.filename}')
     filename = file.filename
     dst_file = path.join(settings.UPLOAD_DIR, filename)
     file.save(dst_file)
@@ -45,13 +49,12 @@ def preprocess(filename: str) -> List[AudioSegment]:
         logger.info("split audio to 2 channels")
         split_by_channels(format_file, left_file, right_file)
         # denoise_audio(left_file, left_file)
-        audio_segments.extend(do_vad_split(left_file, 1))
-        audio_segments.extend(do_vad_split(right_file, 2))
+        audio_segments.extend(do_webrtcvad_split(left_file, 1))
+        audio_segments.extend(do_webrtcvad_split(right_file, 2))
     else:
         logger.info("skip splitting by channels as there is only 1 channel")
-        audio_segments.extend(do_vad_split(format_file, 2))
+        audio_segments.extend(do_webrtcvad_split(format_file, 2))
     audio_segments = sorted(audio_segments, key=lambda x: x.timestamp, reverse=False)
-
     audio_duration = get_audio_duration(format_file)
 
     return audio_segments, num_channels, audio_duration
@@ -81,17 +84,20 @@ def do_stt_and_extract_info(
     if not output_text:
         return current_text, criteria
 
+    start_checking = False
     if is_voice_message:
         start_checking = True
-
-        # always try detecting name, phone if voice message
-        criteria["detect_name"] = True
         criteria["detect_phone"] = True
-    else:
-        # should be strict when agent ask
-        start_checking = audio_segment.channel == 1
+        criteria["detect_id"] = True
 
-    if start_checking and contains_keyword(["tên họ", "họ tên", "tên gì"], output_text):
+    # always try detecting name, phone if voice message
+    criteria["detect_name"] = True
+    criteria["detect_address"] = True
+    # else:
+    #     # should be strict when agent ask
+    #     start_checking = audio_segment.channel == 1
+
+    if start_checking or contains_keyword(["tên họ", "họ tên", "tên gì"], output_text):
         logger.info("Agent start asking `NAME`")
         criteria["detect_name"] = True
 
@@ -100,15 +106,15 @@ def do_stt_and_extract_info(
     #     logger.info("Customer introduces himself/herself")
     #     criteria["detect_name"] = True
 
-    if start_checking and contains_keyword(["địa chỉ"], output_text):
+    if start_checking or contains_keyword(["địa chỉ"], output_text):
         logger.info("Agent starts asking `ADDRESS`")
         criteria["detect_address"] = True
 
-    if start_checking and contains_keyword(["chứng minh", "căn cước"], output_text):
+    if start_checking or contains_keyword(["chứng minh", "căn cước"], output_text):
         logger.info("Agent starts asking `ID`")
         criteria["detect_id"] = True
 
-    if start_checking and contains_keyword(
+    if start_checking or contains_keyword(
         ["số điện thoại", "số di động"], output_text
     ):
         logger.info("Agent starts asking `PHONE_NUMBER`")
@@ -126,6 +132,8 @@ def do_stt_and_extract_info(
     customer_info = extract_customer_info(output_text, criteria=criteria)
     current_customer_info = extract_customer_info(current_text, criteria=criteria)
 
+    logger.info(f'customer_info={customer_info}')
+    logger.info(f'current_customer_info={current_customer_info}')
     if customer_info["nameList"] != "" or current_customer_info["nameList"] != "":
         if criteria.get("detect_name") is True:
             logger.info("Found NAMES. Reset flag `detect_name`")
@@ -133,8 +141,8 @@ def do_stt_and_extract_info(
             logger.info(
                 "current_customer_info: {}".format(current_customer_info["nameList"])
             )
-            current_text["names"] = ""
-        criteria["detect_name"] = False
+        current_text["names"] = ""
+        # criteria["detect_name"] = False
 
     if customer_info["addressList"] != "" or current_customer_info["addressList"] != "":
         if criteria.get("detect_address") is True:
@@ -143,7 +151,7 @@ def do_stt_and_extract_info(
             logger.info(
                 "current_customer_info: {}".format(current_customer_info["addressList"])
             )
-            current_text["addresses"] = ""
+        current_text["addresses"] = ""
         # Keep `detect_address` ON will handle the cases that addresses in multiple sentences
         # criteria["detect_address"] = False
 
@@ -216,19 +224,15 @@ def join_files(file1: str, file2: str) -> None:
         outfile.write(infile.read())
 
 
-import pysftp, paramiko
-import sys
-
-
-ssh = paramiko.SSHClient()
-# automatically add keys without requiring human intervention
-ssh.set_missing_host_key_policy( paramiko.AutoAddPolicy() )
-ssh.connect(settings.SFTP_HOST, username=settings.SFTP_USER, password=settings.SFTP_PASSWORD)
-
-
 def load_sftp_files():
-    myftp = ssh.open_sftp()
+    conn = None
+    myftp = None
+
     try:
+        conn = paramiko.SSHClient()
+        conn.set_missing_host_key_policy( paramiko.AutoAddPolicy() )
+        conn.connect(settings.SFTP_HOST, username=settings.SFTP_USER, password=settings.SFTP_PASSWORD)
+        myftp = conn.open_sftp()
         files = []
         for filename in myftp.listdir(settings.SFTP_DIR):
             if filename.endswith((".mp3", ".wav")):
@@ -237,11 +241,20 @@ def load_sftp_files():
     finally:
         if myftp is not None:
             myftp.close()
+        if conn is not None:
+            conn.close()
 
 def get_sftp_file(filename):
-    myftp = ssh.open_sftp()
+    conn = None
+    myftp = None
     try:
+        conn = paramiko.SSHClient()
+        conn.set_missing_host_key_policy( paramiko.AutoAddPolicy() )
+        conn.connect(settings.SFTP_HOST, username=settings.SFTP_USER, password=settings.SFTP_PASSWORD)
+        myftp = conn.open_sftp()
         myftp.get(f"{settings.SFTP_DIR}/{filename}", f"{settings.UPLOAD_DIR}/{filename}")
     finally:
         if myftp is not None:
             myftp.close()
+        if conn is not None:
+            conn.close()

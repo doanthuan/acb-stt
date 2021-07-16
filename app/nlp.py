@@ -43,11 +43,21 @@ def extract_info_from_ner(ner_output: Dict, tag: str) -> List[str]:
     sentences = ner_output["sentences"]
     for sentence in sentences:
         single_ent = []
+        start_name = False
         for token in sentence["tokens"]:
             if tag in token["ner"]:
+                logger.info(f'tag={token["ner"]} text={token["text"]}')
                 single_ent.append(token["text"])
-        if len(single_ent) > 0:
+                start_name = True
+            else:
+                if start_name:
+                    break
+        single_ent_str = " ".join(single_ent)
+        single_ent_arr = single_ent_str.split(" ")
+        name_word_cnt = len()
+        if name_word_cnt > 1 and name_word_cnt <= 4:
             res.append(" ".join(single_ent))
+    logger.info(f'tag={tag} result={res}')
     return res
 
 
@@ -73,7 +83,9 @@ def extract_customer_info_dict(text: Dict, criteria) -> Dict:
     }
 
     if criteria.get("detect_name") is True:
-        res["nameList"] = extract_customer_info_str(text["names"], criteria)["nameList"]
+        ner_result = extract_customer_info_str(text["names"], criteria)
+        logger.info(f'ner_result={ner_result}')
+        res["nameList"] = ner_result["nameList"]
 
     if criteria.get("detect_address") is True:
         res["addressList"] = extract_customer_info_str(text["addresses"], criteria)[
@@ -97,6 +109,11 @@ def is_blacklist(text: str, blacklist: List[str]) -> bool:
             return True
     return False
 
+def is_valid_name(text: str):
+    txts = text.strip().split(" ")
+    if len(txts) > 1 and len(txts) < 5:
+        return True
+    return False
 
 def extract_customer_info_str(text: str, criteria: Dict) -> Dict:
     """Doing entities regconition"""
@@ -117,9 +134,9 @@ def extract_customer_info_str(text: str, criteria: Dict) -> Dict:
 
     ner_output = ""
     if criteria.get("detect_name") is True:
-        if ner_output == "":
-            ner_output = p.ner(text)
+        ner_output = p.ner(text)
         names = extract_info_from_ner(ner_output, tag="PER")
+        # names = [name for name in names if is_valid_name(name)]
         names = [name for name in names if not is_blacklist(name, BAD_NAMES)]
         customer_info["nameList"] = ",".join(names)
 
@@ -127,6 +144,7 @@ def extract_customer_info_str(text: str, criteria: Dict) -> Dict:
         text = process_address_input(text)
         ner_output = p.ner(text)
         addresses = extract_info_from_ner(ner_output, tag="LOC")
+        # addresses = [addr for addr in addresses if is_valid_name(addr)]
         addresses = [addr for addr in addresses if not is_blacklist(addr, BAD_NAMES)]
         customer_info["addressList"] = ",".join(addresses)
 
