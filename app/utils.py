@@ -1,10 +1,12 @@
 import logging
+import os
 from os import path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import paramiko
 import requests
 from flask import request
+from werkzeug.utils import secure_filename
 
 from .audio import (convert_to_wav, do_webrtcvad_split, get_audio_duration,
                     get_num_channels, split_by_channels)
@@ -16,11 +18,14 @@ from .nlp import extract_customer_info
 logger = logging.getLogger(__name__)
 
 
-def upload_file() -> str:
+def upload_file() -> Optional[str]:
     file = request.files["file"]
-    logger.info(f'Upload_file: {request.files["file"]}')
-    logger.info(f"Upload_file: {file.filename}")
+
     filename = file.filename
+    if filename is None or filename == "":
+        raise ValueError("No file selected")
+
+    filename = secure_filename(filename)
     dst_file = path.join(settings.UPLOAD_DIR, filename)
     file.save(dst_file)
     logger.info(f"Upload file done. File save at {dst_file}")
@@ -35,27 +40,30 @@ def preprocess(filename: str) -> Any:
     format_file = path.join(settings.UPLOAD_DIR, f"format_{name[0]}.wav")
     left_file = path.join(settings.UPLOAD_DIR, f"left_{name[0]}.wav")
     right_file = path.join(settings.UPLOAD_DIR, f"right_{name[0]}.wav")
+    try:
+        convert_to_wav(infile_path, format_file)
 
-    convert_to_wav(infile_path, format_file)
+        # split the file to smaller audio segments. If there is only 1 channel
+        # => that is for customer
+        audio_segments = []
+        num_channels = get_num_channels(format_file)
+        logger.info(f"Number of channels detected: {num_channels}")
+        if num_channels > 1:
+            logger.info("split audio to 2 channels")
+            split_by_channels(format_file, left_file, right_file)
+            audio_segments.extend(do_webrtcvad_split(left_file, 1))
+            audio_segments.extend(do_webrtcvad_split(right_file, 2))
+        else:
+            logger.info("skip splitting by channels as there is only 1 channel")
+            audio_segments.extend(do_webrtcvad_split(format_file, 2))
+        audio_segments = sorted(audio_segments, key=lambda x: x.timestamp, reverse=False)
+        audio_duration = get_audio_duration(format_file)
 
-    # split the file to smaller audio segments. If there is only 1 channel
-    # => that is for customer
-    audio_segments = []
-    num_channels = get_num_channels(format_file)
-    logger.info(f"Number of channels detected: {num_channels}")
-    if num_channels > 1:
-        logger.info("split audio to 2 channels")
-        split_by_channels(format_file, left_file, right_file)
-        # denoise_audio(left_file, left_file)
-        audio_segments.extend(do_webrtcvad_split(left_file, 1))
-        audio_segments.extend(do_webrtcvad_split(right_file, 2))
-    else:
-        logger.info("skip splitting by channels as there is only 1 channel")
-        audio_segments.extend(do_webrtcvad_split(format_file, 2))
-    audio_segments = sorted(audio_segments, key=lambda x: x.timestamp, reverse=False)
-    audio_duration = get_audio_duration(format_file)
-
-    return audio_segments, num_channels, audio_duration
+        return audio_segments, num_channels, audio_duration
+    finally:
+        for f in [format_file, left_file, right_file]:
+            if path.exists(f):
+                os.remove(f)
 
 
 def contains_keyword(keywords: List[str], text: str) -> bool:
@@ -68,10 +76,24 @@ def contains_keyword(keywords: List[str], text: str) -> bool:
 def do_stt_and_extract_info(
     call_id: int = None,
     audio_segment: AudioSegment = None,
-    current_text: Dict[str, str] = None,
-    criteria: Dict = None,
+    current_text: Dict[str, str] = {
+        "names": "",
+        "addreses": "",
+        "id": "",
+        "phone": "",
+        "card_no": "",
+        "acc_no": "",
+    },
+    criteria: Dict = {
+        "detect_name": False,
+        "detect_address": False,
+        "detect_id": False,
+        "detect_card_no": False,
+        "detect_acc_no": False,
+    },
     is_voice_message: bool = False,
 ) -> Any:
+
     # TODO: refactoring
     if not path.exists(audio_segment.audio_file):
         raise ValueError(f"Path {audio_segment.audio_file} does not exist")
@@ -97,18 +119,17 @@ def do_stt_and_extract_info(
 
 def extract_call_info(
     output_text: str,
-    current_text: Dict[str, str] = None,
-    criteria: Dict = None,
+    current_text: Dict[str, str],
+    criteria: Dict,
     is_voice_message: bool = False,
 ):
+
     # As the STT output text is empty, no need to process further,
     # Just return the last current text for the next run
     if not output_text:
         return current_text, criteria
 
-    start_checking = False
     if is_voice_message:
-        start_checking = True
         criteria["detect_phone"] = True
         criteria["detect_id"] = True
         criteria["detect_card_no"] = True
@@ -117,33 +138,32 @@ def extract_call_info(
     # always try detecting name, phone if voice message
     criteria["detect_name"] = True
     criteria["detect_address"] = True
-    # else:
-    #     # should be strict when agent ask
-    #     start_checking = audio_segment.channel == 1
 
-    if start_checking or contains_keyword(
+    if is_voice_message or contains_keyword(
         ["tên họ", "họ tên", "tên gì", "xưng hô"], output_text
     ):
         logger.info("`NAME` scanning is activated")
         criteria["detect_name"] = True
 
-    if start_checking or contains_keyword(["địa chỉ", "số nhà"], output_text):
+    if is_voice_message or contains_keyword(["địa chỉ", "số nhà"], output_text):
         logger.info("`ADDRESS` scanning is activated")
         criteria["detect_address"] = True
 
-    if start_checking or contains_keyword(["chứng minh", "căn cước"], output_text):
+    if is_voice_message or contains_keyword(["chứng minh", "căn cước"], output_text):
         logger.info("`ID` scanning is activated")
         criteria["detect_id"] = True
 
-    if start_checking or contains_keyword(["số điện thoại", "số di động"], output_text):
+    if is_voice_message or contains_keyword(
+        ["số điện thoại", "số di động"], output_text
+    ):
         logger.info("`PHONE_NUMBER` scanning is activated")
         criteria["detect_phone"] = True
 
-    if start_checking or contains_keyword(["số thẻ"], output_text):
+    if is_voice_message or contains_keyword(["số thẻ"], output_text):
         logger.info("`CARD_NO` scanning is activated")
         criteria["detect_card_no"] = True
 
-    if start_checking or contains_keyword(["số tài khoản"], output_text):
+    if is_voice_message or contains_keyword(["số tài khoản"], output_text):
         logger.info("`ACC_NO` scanning is activated")
         criteria["detect_acc_no"] = True
 
@@ -171,8 +191,8 @@ def extract_call_info(
     if customer_info["nameList"] != "" or current_customer_info["nameList"] != "":
         if criteria.get("detect_name") is True:
             logger.info("Found NAMES. Reset flag `detect_name`")
-            logger.info("customer_info: {}".format(customer_info["nameList"]))
-            logger.info(
+            logger.debug("customer_info: {}".format(customer_info["nameList"]))
+            logger.debug(
                 "current_customer_info: {}".format(current_customer_info["nameList"])
             )
         current_text["names"] = ""
@@ -181,8 +201,8 @@ def extract_call_info(
     if customer_info["addressList"] != "" or current_customer_info["addressList"] != "":
         if criteria.get("detect_address") is True:
             logger.info("Found address. Reset flag `detect_address`")
-            logger.info("customer_info: {}".format(customer_info["addressList"]))
-            logger.info(
+            logger.debug("customer_info: {}".format(customer_info["addressList"]))
+            logger.debug(
                 "current_customer_info: {}".format(current_customer_info["addressList"])
             )
         current_text["addresses"] = ""
@@ -219,24 +239,18 @@ def extract_call_info(
 def speech_to_text(filename: str) -> str:
 
     result = ""
-    # audio_file = path.join(path.realpath(__file__).parent.absolute(), filename)
     audio_file = path.abspath(filename)
 
-    # data = {"apiKey": settings.STT_API_KEY}
     files = {"file": open(audio_file, "rb")}
     r = requests.post(settings.API_STT, files=files)  # , data=data)
-    # print(data)
 
     if not r.ok:
         logger.error("Something went wrong!")
         logger.error(r)
         return ""
 
-    # print("Upload completed successfully!")
     response = r.json()
-    # print(response)
     result = parse_stt_result(response)
-    # print(result)
 
     return result
 
@@ -247,11 +261,6 @@ def parse_stt_result(json_result: Dict) -> str:
         return ""
 
     result = json_result["result"]
-    # result = []
-    # for segment in json_result["Model"]:
-    #     # multiple transcripts in hypotheses ???
-    #     result.append(segment["result"]["hypotheses"][0]["transcript"])
-
     return " ".join(result)
 
 

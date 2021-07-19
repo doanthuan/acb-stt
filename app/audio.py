@@ -36,24 +36,6 @@ def convert_to_wav(infile: str, outfile: str):
 
 
 def split_by_channels(infile: str, left_outfile: str, right_outfile: str):
-    # subprocess.check_call(
-    #     [
-    #         "ffmpeg",
-    #         "-hide_banner",
-    #         "-loglevel",
-    #         "error",
-    #         "-i",
-    #         infile,
-    #         "-filter_complex",
-    #         "[0:a]channelsplit=channel_layout=stereo[left][right]",
-    #         "-map",
-    #         "[left]",
-    #         left_outfile,
-    #         "-map",
-    #         "[right]",
-    #         right_outfile,
-    #     ]
-    # )
     subprocess.check_call(
         [
             "ffmpeg",
