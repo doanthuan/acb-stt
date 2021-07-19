@@ -117,34 +117,38 @@ def do_webrtcvad_split(infile: str, channel: int) -> List[AudioSegment]:
     resampled_file = "resampled_" + os.path.basename(infile)
     resampled_file = os.path.join(settings.UPLOAD_DIR, resampled_file)
 
-    # resample audio file at 16khz, with/without noise reduction
-    resample_audio_file(infile, resampled_file)
-    audio_path, sample_rate = read_wave(resampled_file)
-    logger.info(
-        f"collect voice audio using VAD.  aggressive={settings.VAD_AGGRESSIVE_LEVEL} frame_duration={settings.FRAME_DURATION_MS} padding={settings.PADDING_DURATION_MS}"
-    )
-
-    vad = webrtcvad.Vad(settings.VAD_AGGRESSIVE_LEVEL)
-    frames = frame_generator(settings.FRAME_DURATION_MS, audio_path, sample_rate)
-    frames = list(frames)
-
-    filename = os.path.splitext(resampled_file)[0]
-    segments = vad_collector(
-        sample_rate,
-        settings.FRAME_DURATION_MS,
-        settings.PADDING_DURATION_MS,
-        vad,
-        frames,
-    )
-
-    res = []
-    for i, segment in enumerate(segments):
-        path = f"{filename}_chunk_{i:003}.wav"
-        write_wave(path, segment.bytes, sample_rate)
-        res.append(
-            AudioSegment(timestamp=segment.timestamp, channel=channel, audio_file=path)
+    try:
+        # resample audio file at 16khz, with/without noise reduction
+        resample_audio_file(infile, resampled_file)
+        audio_path, sample_rate = read_wave(resampled_file)
+        logger.info(
+            f"collect voice audio using VAD.  aggressive={settings.VAD_AGGRESSIVE_LEVEL} frame_duration={settings.FRAME_DURATION_MS} padding={settings.PADDING_DURATION_MS}"
         )
-    return res
+
+        vad = webrtcvad.Vad(settings.VAD_AGGRESSIVE_LEVEL)
+        frames = frame_generator(settings.FRAME_DURATION_MS, audio_path, sample_rate)
+        frames = list(frames)
+
+        filename = os.path.splitext(resampled_file)[0]
+        segments = vad_collector(
+            sample_rate,
+            settings.FRAME_DURATION_MS,
+            settings.PADDING_DURATION_MS,
+            vad,
+            frames,
+        )
+
+        res = []
+        for i, segment in enumerate(segments):
+            path = f"{filename}_chunk_{i:003}.wav"
+            write_wave(path, segment.bytes, sample_rate)
+            res.append(
+                AudioSegment(timestamp=segment.timestamp, channel=channel, audio_file=path)
+            )
+        return res
+    finally:
+        if os.path.exists(resampled_file):
+            os.remove(resampled_file)
 
 
 def do_vad_split(infile: str, channel: int) -> List[AudioSegment]:
