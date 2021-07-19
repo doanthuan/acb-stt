@@ -10,8 +10,8 @@ from .constant import (ACC_NO_REGEX, BAD_NAMES, BAD_WORDS, CARD_NO_REGEX,
                        PHONE_REGEX)
 
 logger = logging.getLogger(__name__)
-# p = Pipeline(lang="vietnamese", gpu=False, cache_dir=settings.CACHE_DIR)
-p = Pipeline(lang="customized-ner", gpu=False, cache_dir=settings.CACHE_DIR)
+p = Pipeline(lang="vietnamese", gpu=False, cache_dir=settings.CACHE_DIR)
+# p = Pipeline(lang="customized-ner", gpu=False, cache_dir=settings.CACHE_DIR)
 
 
 def parse_name_entity(text: str) -> Tuple[List[str], List[str]]:
@@ -64,7 +64,7 @@ def extract_info_from_ner(ner_output: Dict, tag: str) -> List[str]:
         single_ent = " ".join(single_ent)
         names = single_ent.split(" ")
 
-        if (is_name_ok and len(names) > 2) or (len(names) > 2 and len(names) <= 4):
+        if (is_name_ok and len(names) > 1) or (len(names) > 2 and len(names) <= 4):
             res.append(single_ent)
     logger.info(f"tag={tag} result={res}")
     return res
@@ -159,7 +159,7 @@ def extract_customer_info_str(text: str, criteria: Dict) -> Dict[str, str]:
 
     ner_output = ""
     if criteria.get("detect_name") is True:
-        ner_output = p.ner(text, is_sent=True)
+        ner_output = p.ner(normalize_name(text), is_sent=True)
         names = extract_info_from_ner(ner_output, tag="PER")
         # names = [name for name in names if is_valid_name(name)]
         names = [name for name in names if not is_blacklist(name, BAD_NAMES)]
@@ -167,7 +167,7 @@ def extract_customer_info_str(text: str, criteria: Dict) -> Dict[str, str]:
 
     if criteria.get("detect_address") is True:
         text = process_address_input(text)
-        ner_output = p.ner(text, is_sent=True)
+        ner_output = p.ner(normalize_name(text), is_sent=True)
         addresses = extract_info_from_ner(ner_output, tag="LOC")
         # addresses = [addr for addr in addresses if is_valid_name(addr)]
         addresses = [addr for addr in addresses if not is_blacklist(addr, BAD_NAMES)]
@@ -274,3 +274,18 @@ def extract_info(regex: str, text: str) -> str:
     # Remove non-digit character
     res = re.sub(r"[^0-9]", "", res)
     return res
+
+
+def capitalize(text: str) -> str:
+    return " ".join(w.capitalize() for w in text.split(" "))
+
+
+def normalize_name(txt: str) -> str:
+    # always enable sentence-mode when doing normalize name
+    res = p.posdep(txt, is_sent=True)
+    sent = []
+    for word in res["tokens"]:
+        sent.append(
+            capitalize(word["text"]) if word["upos"] in ["PROPN"] else word["text"]
+        )
+    return " ".join(sent)
