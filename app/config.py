@@ -50,5 +50,4 @@ class Settings(BaseSettings):
     SMTP_EMAIL = env.str("SMTP_EMAIL", "appinfo@acb.com.vn")
 
 
-
 settings = Settings()

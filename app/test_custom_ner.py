@@ -1,5 +1,4 @@
 from trankit import Pipeline
-from nlp import *
 
 # trankit.download_missing_files(
 # 	category='customized-ner',
@@ -16,8 +15,8 @@ from nlp import *
 
 p = Pipeline(lang="customized-ner", cache_dir="./save_dir")
 
-#text = "em hôm qua chuyển tiền cho số tài khoản của phan thị là em nghi có hiện tượng lừa đảo"
-#text = "chủ tài khoản nguyễn thị trà linh tài khoản một ba"
+# text = "em hôm qua chuyển tiền cho số tài khoản của phan thị là em nghi có hiện tượng lừa đảo"
+# text = "chủ tài khoản nguyễn thị trà linh tài khoản một ba"
 text = "chủ tài khoản trần thị ngọc nga tài khoản một ba"
 vi_output = p.ner(text, is_sent=True)
 print(vi_output)
@@ -36,5 +35,3 @@ print(vi_output)
 # #names = [name for name in names if not is_blacklist(name, BAD_NAMES)]
 # #customer_info = extract_customer_info_str(text, criteria=criteria)
 # print(names)
-
-

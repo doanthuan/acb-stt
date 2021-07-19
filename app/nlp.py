@@ -5,8 +5,9 @@ from typing import Dict, List, Tuple, Union
 from trankit import Pipeline
 
 from .config import settings
-from .constant import (BAD_NAMES, BAD_WORDS, DIGITS, ID_REGEX, ID_REGEX_OLD, CARD_NO_REGEX, ACC_NO_REGEX,
-                       NUMERIC_MAPPINGS, PHONE_REGEX)
+from .constant import (ACC_NO_REGEX, BAD_NAMES, BAD_WORDS, CARD_NO_REGEX,
+                       DIGITS, ID_REGEX, ID_REGEX_OLD, NUMERIC_MAPPINGS,
+                       PHONE_REGEX)
 
 logger = logging.getLogger(__name__)
 # p = Pipeline(lang="vietnamese", gpu=False, cache_dir=settings.CACHE_DIR)
@@ -50,18 +51,22 @@ def extract_info_from_ner(ner_output: Dict, tag: str) -> List[str]:
             if tag in token["ner"]:
                 is_name = True
                 logger.info(f'tag={token["ner"]} text={token["text"]}')
-                if (("B-" + tag) == token["ner"]) or (("E-"+tag) == token["ner"]) or (("S-"+tag) == token["ner"]):
+                if (
+                    (("B-" + tag) == token["ner"])
+                    or (("E-" + tag) == token["ner"])
+                    or (("S-" + tag) == token["ner"])
+                ):
                     is_name_ok = True
                 single_ent.append(token["text"])
             else:
                 if is_name:
                     break
-        single_ent = ' '.join(single_ent)
-        names = single_ent.split(' ')
-        
-        if (is_name_ok and len(names) > 1) or (len(names) > 2 and len(names) <= 4 ):
+        single_ent = " ".join(single_ent)
+        names = single_ent.split(" ")
+
+        if (is_name_ok and len(names) > 1) or (len(names) > 2 and len(names) <= 4):
             res.append(single_ent)
-    logger.info(f'tag={tag} result={res}')
+    logger.info(f"tag={tag} result={res}")
     return res
 
 
@@ -90,7 +95,7 @@ def extract_customer_info_dict(text: Dict, criteria) -> Dict:
 
     if criteria.get("detect_name") is True:
         ner_result = extract_customer_info_str(text["names"], criteria)
-        logger.info(f'ner_result={ner_result}')
+        logger.info(f"ner_result={ner_result}")
         res["nameList"] = ner_result["nameList"]
 
     if criteria.get("detect_address") is True:
@@ -107,10 +112,14 @@ def extract_customer_info_dict(text: Dict, criteria) -> Dict:
         ]
 
     if criteria.get("detect_card_no") is True:
-        res["cardNumber"] = extract_customer_info_str(text["card_no"], criteria)["cardNumber"]
+        res["cardNumber"] = extract_customer_info_str(text["card_no"], criteria)[
+            "cardNumber"
+        ]
 
     if criteria.get("detect_acc_no") is True:
-        res["accNumber"] = extract_customer_info_str(text["acc_no"], criteria)["accNumber"]
+        res["accNumber"] = extract_customer_info_str(text["acc_no"], criteria)[
+            "accNumber"
+        ]
 
     return res
 
@@ -121,11 +130,13 @@ def is_blacklist(text: str, blacklist: List[str]) -> bool:
             return True
     return False
 
+
 def is_valid_name(text: str):
     txts = text.strip().split(" ")
     if len(txts) > 1 and len(txts) < 5:
         return True
     return False
+
 
 def extract_customer_info_str(text: str, criteria: Dict) -> Dict:
     """Doing entities regconition"""

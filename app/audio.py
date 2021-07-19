@@ -4,8 +4,8 @@ import os
 import re
 import subprocess
 import wave
-from typing import List
 from datetime import datetime, timedelta
+from typing import List
 
 import webrtcvad
 
@@ -68,7 +68,7 @@ def split_by_channels(infile: str, left_outfile: str, right_outfile: str):
             "-map_channel",
             "0.0.1",
             right_outfile,
-	    "-y"
+            "-y",
         ]
     )
 
@@ -269,16 +269,18 @@ def get_num_channels(infile: str) -> int:
     if len(filter_output) > 0:
         return int(filter_output[0].split(" ")[0])
 
+
 def get_audio_duration(infile: str) -> int:
     output = subprocess.run(
         ["ffprobe", infile], stdout=subprocess.PIPE, stderr=subprocess.STDOUT
     )
     filter_output = re.findall(r"Duration: \d+:\d+:\d+", output.stdout.decode("utf-8"))
     if len(filter_output) > 0:
-        duration_str = (filter_output[0].split("Duration: ")[1])
-        t = datetime.strptime(duration_str, '%H:%M:%S')
+        duration_str = filter_output[0].split("Duration: ")[1]
+        t = datetime.strptime(duration_str, "%H:%M:%S")
         delta = timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
         return int(delta.total_seconds())
+
 
 def read_wave(path):
     """Reads a .wav file.

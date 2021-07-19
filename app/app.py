@@ -1,11 +1,9 @@
 import logging
 import logging.config
 import os
-import pathlib
-from typing import Dict
-
 import smtplib
 from email.mime.text import MIMEText
+from typing import Dict
 
 from flask import Flask, jsonify, render_template, request, send_from_directory
 from flask_cors import CORS, cross_origin
@@ -14,7 +12,8 @@ from .call import start_call, stop_call
 from .config import settings
 from .exceptions import APIException
 from .nlp import extract_identity_info
-from .utils import do_stt_and_extract_info, preprocess, upload_file, load_sftp_files, get_sftp_file
+from .utils import (do_stt_and_extract_info, get_sftp_file, load_sftp_files,
+                    preprocess, upload_file)
 
 app = Flask(__name__, template_folder="./templates")
 
@@ -37,6 +36,7 @@ def main():
     ftp_files = load_sftp_files()
     return render_template("index.html", ftp_files=ftp_files)
 
+
 @app.route("/send-email", methods=["POST"])
 def send_email():
     status = ""
@@ -45,18 +45,20 @@ def send_email():
         if data is None:
             raise ValueError("Request params should be in JSON format")
 
-        msg =  MIMEText(data["content"])
+        msg = MIMEText(data["content"])
         msg["subject"] = data["subject"]
         msg["from"] = settings.SMTP_USER
         msg["to"] = data["to"]
 
-        app.logger.info(f"Using following for send email: host={settings.SMTP_HOST} port={settings.SMTP_PORT}")
-    
+        app.logger.info(
+            f"Using following for send email: host={settings.SMTP_HOST} port={settings.SMTP_PORT}"
+        )
+
         with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
             server.ehlo()
             server.starttls()
             server.ehlo()
-            
+
             app.logger.info(f"Authenticate with mail server: user={settings.SMTP_USER}")
             server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
             server.sendmail(settings.SMTP_EMAIL, data["to"], msg.as_string())
@@ -72,24 +74,24 @@ def send_email():
 
 @app.route("/upload-ftp", methods=["POST"])
 def upload_ftp():
-    if request.method == 'POST':
+    if request.method == "POST":
         try:
-            #get selected files
-            #ftp_files = request.form.getlist('selected_files')
+            # get selected files
+            # ftp_files = request.form.getlist('selected_files')
 
             filename = request.form.get("filename")
 
-            #get sftp file to upload folder
+            # get sftp file to upload folder
             get_sftp_file(filename)
 
-            #process a call
+            # process a call
             process_a_call(filename)
 
             return jsonify(result="success")
         except Exception as e:
             app.logger.error(f"Unexpected error: {e}")
             raise e
-    
+
 
 def process_a_call(filename):
     audio_segments = []
@@ -120,8 +122,22 @@ def process_a_call(filename):
         if num_channels == 1:
             is_voice_message = True
 
-        agent_text = {"names": "", "addresses": "", "id": "", "phone": "", "card_no": "", "acc_no": ""}
-        customer_text = {"names": "", "addresses": "", "id": "", "phone": "", "card_no":"", "acc_no":""}
+        agent_text = {
+            "names": "",
+            "addresses": "",
+            "id": "",
+            "phone": "",
+            "card_no": "",
+            "acc_no": "",
+        }
+        customer_text = {
+            "names": "",
+            "addresses": "",
+            "id": "",
+            "phone": "",
+            "card_no": "",
+            "acc_no": "",
+        }
         for segment in audio_segments:
             if segment.channel == 1:
                 agent_text, criteria = do_stt_and_extract_info(
@@ -149,6 +165,7 @@ def process_a_call(filename):
         for segment in audio_segments:
             if os.path.exists(segment.audio_file):
                 os.remove(segment.audio_file)
+
 
 @cross_origin()
 @app.route("/uploadfile", methods=["POST"])

@@ -18,7 +18,7 @@ def start_call() -> None:
     }
 
     r = requests.post(settings.API_URL + "/public/stt/call/start", json=data)
-    logger.info(f'response: {r}')
+    logger.info(f"response: {r}")
     json_result = r.json()
     call_id = json_result["model"]["id"]
     logger.info(f"Successfully started the call with ID={call_id}")

@@ -43,9 +43,7 @@ BAD_NAMES = [
     "cơ quan",
     "ty đà",
     "xức ho",
-    "cố ơn"
-    "cá "
-    "hông hiểu",
+    "cố ơn" "cá " "hông hiểu",
     "hồ sơ",
     "ná kến",
     "trong qui",
