@@ -92,6 +92,7 @@ def upload_ftp():
     
 
 def process_a_call(filename):
+    audio_segments = []
     try:
         call_id = start_call()
         if call_id is None:
@@ -144,6 +145,10 @@ def process_a_call(filename):
     except Exception as e:
         app.logger.error(f"Unexpected error: {e}")
         raise e
+    finally:
+        for segment in audio_segments:
+            if os.path.exists(segment.audio_file):
+                os.remove(segment.audio_file)
 
 @cross_origin()
 @app.route("/uploadfile", methods=["POST"])
