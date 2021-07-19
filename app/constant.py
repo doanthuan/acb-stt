@@ -5,15 +5,18 @@
 BAD_WORDS = [" òi", " ồi", " em", " a", " ạ", " à", " á", " ở", " e", "rồi", "y"]
 
 # regex to match phone number in VN (as standard)
-PHONE_REGEX = r"(0?)(3[2-9]|5[6|8|9]|7[0|6-9]|8[0-6|8|9]|9[0-4|6-9])\d{7,8}"
+PHONE_REGEX = r"(0?)(3[2-9]|5[6|8|9]|7[0|6-9]|8[0-6|8|9]|9[0-4|6-9])\d{7,8}([^\d]|$)"
 
 # regex to match ID number (new format)
 # ID_REGEX = r"0([0-8]\d|9[0-6])\d{9}[^\d]"
-ID_REGEX = r"0([0-8]\d|9[0-6])\d{9}"
+ID_REGEX = r"0([0-8]\d|9[0-6])\d{9}([^\d|$])"
 
 # regex to match ID number (old format)
 # ID_REGEX_OLD = r"(0[1-8]\d|09[0-2]|[1-2]\d{2}|3[0-8]\d)\d{6}[^\d]"
 ID_REGEX_OLD = r"(0[1-8]\d|09[0-2]|[1-2]\d{2}|3[0-8]\d)\d{6}([^\d]|$)"
+
+CARD_NO_REGEX = r"\d{16}([^\d]|$)"
+ACC_NO_REGEX = r"[1-9]\d{4,11}([^d|$])"
 
 # add leading space to avoid replace the match inside of the words such as agribank
 NUMERIC_MAPPINGS = {
@@ -44,4 +47,6 @@ BAD_NAMES = [
     "cá "
     "hông hiểu",
     "hồ sơ",
+    "ná kến",
+    "trong qui",
 ]

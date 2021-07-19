@@ -5,7 +5,7 @@ from typing import Dict, List, Tuple, Union
 from trankit import Pipeline
 
 from .config import settings
-from .constant import (BAD_NAMES, BAD_WORDS, DIGITS, ID_REGEX, ID_REGEX_OLD,
+from .constant import (BAD_NAMES, BAD_WORDS, DIGITS, ID_REGEX, ID_REGEX_OLD, CARD_NO_REGEX, ACC_NO_REGEX,
                        NUMERIC_MAPPINGS, PHONE_REGEX)
 
 logger = logging.getLogger(__name__)
@@ -40,23 +40,27 @@ def parse_name_entity(text: str) -> Tuple[List[str], List[str]]:
 
 def extract_info_from_ner(ner_output: Dict, tag: str) -> List[str]:
     res = []
-    sentences = ner_output["sentences"]
+    #  sentences = ner_output["sentences"]
+    sentences = [ner_output]
     for sentence in sentences:
         single_ent = []
-        start_name = False
+        is_name = False
+        is_name_ok = False
         for token in sentence["tokens"]:
             if tag in token["ner"]:
+                is_name = True
                 logger.info(f'tag={token["ner"]} text={token["text"]}')
+                if (("B-" + tag) == token["ner"]) or (("E-"+tag) == token["ner"]) or (("S-"+tag) == token["ner"]):
+                    is_name_ok = True
                 single_ent.append(token["text"])
-                start_name = True
             else:
-                if start_name:
+                if is_name:
                     break
-        single_ent_str = " ".join(single_ent)
-        single_ent_arr = single_ent_str.split(" ")
-        name_word_cnt = len()
-        if name_word_cnt > 1 and name_word_cnt <= 4:
-            res.append(" ".join(single_ent))
+        single_ent = ' '.join(single_ent)
+        names = single_ent.split(' ')
+        
+        if (is_name_ok and len(names) > 1) or (len(names) > 2 and len(names) <= 4 ):
+            res.append(single_ent)
     logger.info(f'tag={tag} result={res}')
     return res
 
@@ -80,6 +84,8 @@ def extract_customer_info_dict(text: Dict, criteria) -> Dict:
         "addressList": "",
         "idNumber": "",
         "phoneNumber": "",
+        "accNumber": "",
+        "cardNumber": "",
     }
 
     if criteria.get("detect_name") is True:
@@ -99,6 +105,12 @@ def extract_customer_info_dict(text: Dict, criteria) -> Dict:
         res["phoneNumber"] = extract_customer_info_str(text["phone"], criteria)[
             "phoneNumber"
         ]
+
+    if criteria.get("detect_card_no") is True:
+        res["cardNumber"] = extract_customer_info_str(text["card_no"], criteria)["cardNumber"]
+
+    if criteria.get("detect_acc_no") is True:
+        res["accNumber"] = extract_customer_info_str(text["acc_no"], criteria)["accNumber"]
 
     return res
 
@@ -122,6 +134,8 @@ def extract_customer_info_str(text: str, criteria: Dict) -> Dict:
         "addressList": "",
         "idNumber": "",
         "phoneNumber": "",
+        "cardNumber": "",
+        "accNumber": "",
     }
     if not text:
         logger.warning("input text is empty")
@@ -130,11 +144,11 @@ def extract_customer_info_str(text: str, criteria: Dict) -> Dict:
     # Extract customer info. To do that more accurately, text needs
     # to be preprocess such as convert to number, remove bad words that affects
     # the pattern matching
-    print(f'Scanning Named Identity for text="{text}"')
+    logger.info(f'Scanning Named Identity for text="{text}"')
 
     ner_output = ""
     if criteria.get("detect_name") is True:
-        ner_output = p.ner(text)
+        ner_output = p.ner(text, is_sent=True)
         names = extract_info_from_ner(ner_output, tag="PER")
         # names = [name for name in names if is_valid_name(name)]
         names = [name for name in names if not is_blacklist(name, BAD_NAMES)]
@@ -142,7 +156,7 @@ def extract_customer_info_str(text: str, criteria: Dict) -> Dict:
 
     if criteria.get("detect_address") is True:
         text = process_address_input(text)
-        ner_output = p.ner(text)
+        ner_output = p.ner(text, is_sent=True)
         addresses = extract_info_from_ner(ner_output, tag="LOC")
         # addresses = [addr for addr in addresses if is_valid_name(addr)]
         addresses = [addr for addr in addresses if not is_blacklist(addr, BAD_NAMES)]
@@ -157,15 +171,18 @@ def extract_customer_info_str(text: str, criteria: Dict) -> Dict:
         customer_info["idNumber"] = extract_info(ID_REGEX, text)
         if customer_info["idNumber"] == "":
             customer_info["idNumber"] = extract_info(ID_REGEX_OLD, text)
-
-            # this can be tricky as the old-id-pattern matches can contain
-            # non-numeric character. It's needed to remove them
-            if len(customer_info["idNumber"]) > 9:
-                customer_info["idNumber"] = customer_info["idNumber"][:9]
+        # this can be tricky as the old-id-pattern matches can contain
+        # non-numeric character. It's needed to remove them
+        # customer_info["idNumber"] = re.sub("\w", "", customer_info["idNumber"]
 
     if criteria.get("detect_phone") is True:
-        print(f"Detect phone: text={text} ...")
         customer_info["phoneNumber"] = extract_info(PHONE_REGEX, text)
+
+    if criteria.get("detect_acc_no") is True:
+        customer_info["accNumber"] = extract_info(ACC_NO_REGEX, text)
+
+    if criteria.get("detect_card_no") is True:
+        customer_info["cardNumber"] = extract_info(CARD_NO_REGEX, text)
 
     return customer_info
 
@@ -241,7 +258,11 @@ def extract_info(regex: str, text: str) -> str:
     if match is None:
         return ""
 
-    # remove last non-numeric character
-    return match.group()
+    res = match.group()
+    logger.debug(f"Found text={res} with pattern={regex}")
+
+    # Remove non-digit character
+    res = re.sub(r"[^0-9]", "", res)
+    return res
     # start, end = match.span()
     # return text[start : end - 1]  # noqa: E203

@@ -107,6 +107,8 @@ def process_a_call(filename):
             "detect_id": False,
             "detect_phone": False,
             # more fields
+            "detect_card_no": False,
+            "detect_acc_no": False,
         }
 
         if num_channels > 2:
@@ -117,8 +119,8 @@ def process_a_call(filename):
         if num_channels == 1:
             is_voice_message = True
 
-        agent_text = {"names": "", "addresses": "", "id": "", "phone": ""}
-        customer_text = {"names": "", "addresses": "", "id": "", "phone": ""}
+        agent_text = {"names": "", "addresses": "", "id": "", "phone": "", "card_no": "", "acc_no": ""}
+        customer_text = {"names": "", "addresses": "", "id": "", "phone": "", "card_no":"", "acc_no":""}
         for segment in audio_segments:
             if segment.channel == 1:
                 agent_text, criteria = do_stt_and_extract_info(

@@ -79,6 +79,27 @@ def do_stt_and_extract_info(
         raise ValueError(f"Path {audio_segment.audio_file} does not exist")
 
     output_text = speech_to_text(audio_segment.audio_file)
+
+    customer_info, current_customer_info = extract_call_info(output_text, current_text, criteria, is_voice_message)
+
+    logger.info(
+        f"Send updated result: text='{output_text}' channel={audio_segment.channel} call_id={call_id} info={customer_info}"
+    )
+    send_msg(
+        output_text,
+        audio_segment.channel,
+        call_id,
+        customer_info,
+        current_customer_info,
+    )
+    return current_text, criteria
+
+def extract_call_info(
+    output_text: str,
+    current_text: Dict[str, str] = None,
+    criteria: Dict = None,
+    is_voice_message: bool = False,
+):
     # As the STT output text is empty, no need to process further,
     # Just return the last current text for the next run
     if not output_text:
@@ -89,6 +110,8 @@ def do_stt_and_extract_info(
         start_checking = True
         criteria["detect_phone"] = True
         criteria["detect_id"] = True
+        criteria["detect_card_no"] = True
+        criteria["detect_acc_no"] = True
 
     # always try detecting name, phone if voice message
     criteria["detect_name"] = True
@@ -97,8 +120,8 @@ def do_stt_and_extract_info(
     #     # should be strict when agent ask
     #     start_checking = audio_segment.channel == 1
 
-    if start_checking or contains_keyword(["tên họ", "họ tên", "tên gì"], output_text):
-        logger.info("Agent start asking `NAME`")
+    if start_checking or contains_keyword(["tên họ", "họ tên", "tên gì", "xưng hô"], output_text):
+        logger.info("`NAME` scanning is activated")
         criteria["detect_name"] = True
 
     # HACK: sometimes, customer introduces the name before-hand
@@ -106,19 +129,27 @@ def do_stt_and_extract_info(
     #     logger.info("Customer introduces himself/herself")
     #     criteria["detect_name"] = True
 
-    if start_checking or contains_keyword(["địa chỉ"], output_text):
-        logger.info("Agent starts asking `ADDRESS`")
+    if start_checking or contains_keyword(["địa chỉ", "số nhà"], output_text):
+        logger.info("`ADDRESS` scanning is activated")
         criteria["detect_address"] = True
 
     if start_checking or contains_keyword(["chứng minh", "căn cước"], output_text):
-        logger.info("Agent starts asking `ID`")
+        logger.info("`ID` scanning is activated")
         criteria["detect_id"] = True
 
     if start_checking or contains_keyword(
         ["số điện thoại", "số di động"], output_text
     ):
-        logger.info("Agent starts asking `PHONE_NUMBER`")
+        logger.info("`PHONE_NUMBER` scanning is activated")
         criteria["detect_phone"] = True
+
+    if start_checking or contains_keyword(["số thẻ"], output_text):
+        logger.info("`CARD_NO` scanning is activated")
+        criteria["detect_card_no"] = True
+
+    if start_checking or contains_keyword(["số tài khoản"], output_text):
+        logger.info("`ACC_NO` scanning is activated")
+        criteria["detect_acc_no"] = True
 
     # Only save the entire text when the signal for detect `ID`, `PHONE`is on.
     # Otherwise, keep it as blank
@@ -128,12 +159,20 @@ def do_stt_and_extract_info(
     if criteria["detect_phone"]:
         current_text["phone"] = " ".join([current_text["phone"], output_text])
 
+    if criteria["detect_acc_no"]:
+        current_text["acc_no"] = " ".join([current_text["acc_no"], output_text])
+
+    if criteria["detect_card_no"]:
+        current_text["card_no"] = " ".join([current_text["card_no"], output_text])
+
+    if criteria["detect_address"]:
+        #print("address",current_text["addresses"])
+        current_text["addresses"] = " ".join([current_text["addresses"], output_text])
+
     # attempt to extract customer info from current sentence and the entire sentence
     customer_info = extract_customer_info(output_text, criteria=criteria)
     current_customer_info = extract_customer_info(current_text, criteria=criteria)
 
-    logger.info(f'customer_info={customer_info}')
-    logger.info(f'current_customer_info={current_customer_info}')
     if customer_info["nameList"] != "" or current_customer_info["nameList"] != "":
         if criteria.get("detect_name") is True:
             logger.info("Found NAMES. Reset flag `detect_name`")
@@ -166,19 +205,20 @@ def do_stt_and_extract_info(
             logger.info("Found PHONE NUMBER. Reset flag `detect_phone`")
             current_text["phone"] = ""
         criteria["detect_phone"] = False
+    
+    if customer_info["cardNumber"] != "" or current_customer_info["cardNumber"] != "":
+        if criteria.get("detect_card_no") is True:
+            logger.info("Found `CARD_NO`. Reset flag `detect_card_no`")
+            current_text["card_no"] = ""
+        criteria["detect_card_no"] = False
 
-    logger.info(
-        f"Send updated result: text='{output_text}' channel={audio_segment.channel} call_id={call_id} info={customer_info}"
-    )
-    send_msg(
-        output_text,
-        audio_segment.channel,
-        call_id,
-        customer_info,
-        current_customer_info,
-    )
-    return current_text, criteria
+    if customer_info["accNumber"] != "" or current_customer_info["accNumber"] != "":
+        if criteria.get("detect_acc_no") is True:
+            logger.info("Found `ACC_NO`. Reset flag `detect_acc_no`")
+            current_text["acc_no"] = ""
+        criteria["detect_acc_no"] = False
 
+    return customer_info, current_customer_info
 
 def speech_to_text(filename: str) -> str:
 

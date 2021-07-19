@@ -297,7 +297,6 @@
           if(upload_files.length > 4){
             alert("Maximum 4 audio are allowed")
           }
-          debugger;
           var max_length = upload_files.length > 4 ? 4 : upload_files.length;
           for (let i = 0; i < max_length; i++) {
             var formdata = new FormData()
@@ -317,20 +316,22 @@
           if ($(this).is(":checked")) {
               var filename = $(this).attr('value');
               selected.push(filename);
-              
           }
         });
+
+        if(selected.length > 4){
+          alert("Maximum 4 audio are allowed")
+        }
+        var max_length = selected.length > 4 ? 4 : selected.length;
         
         if(selected.length > 0){
           $(".spinner").show()
         }
 
-        for (let i = 0; i < selected.length; i++) {
+        for (let i = 0; i < max_length; i++) {
           onProgress++;
-          if(onProgress <= 2){
-            filename = selected[i]
-            ftpSubmitFile(filename)
-          }
+          filename = selected[i]
+          ftpSubmitFile(filename)
         }
       })
 
