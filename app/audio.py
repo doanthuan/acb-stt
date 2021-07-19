@@ -124,7 +124,7 @@ def do_silero_vad_split(infile: str, channel: int) -> List[AudioSegment]:
     filename = os.path.splitext(resampled_file)[0]
     for i, ts in enumerate(speech_timestamps):
         path = f"{filename}_chunk_{i:003}.wav"
-        save_audio(path, in_wav[ts["start"] : ts["end"]], 16000)
+        save_audio(path, in_wav[ts["start"] : ts["end"]], 16000)  # noqa: E203
         res.append(
             AudioSegment(timestamp=ts["start"], channel=channel, audio_file=path)
         )
@@ -268,6 +268,7 @@ def get_num_channels(infile: str) -> int:
     filter_output = re.findall(r"\d channels", output.stdout.decode("utf-8"))
     if len(filter_output) > 0:
         return int(filter_output[0].split(" ")[0])
+    return 1  # audio should have at least 1 channel by default
 
 
 def get_audio_duration(infile: str) -> int:
@@ -280,6 +281,7 @@ def get_audio_duration(infile: str) -> int:
         t = datetime.strptime(duration_str, "%H:%M:%S")
         delta = timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
         return int(delta.total_seconds())
+    return 0
 
 
 def read_wave(path):
@@ -306,37 +308,3 @@ def write_wave(path, audio, sample_rate):
         wf.setsampwidth(2)
         wf.setframerate(sample_rate)
         wf.writeframes(audio)
-
-
-def process_audio_sentence(input_sen, channel, call_id, customer_text_sum="") -> str:
-    pass
-    # # convert speech to text by using dinosoft api
-    # if os.path.exists(input_sen):
-    #     text = speech_to_text(input_sen)
-    # else:
-    #     text = input_sen
-
-    # if not text:
-    #     return ""
-
-    # extract_info_line = {}
-    # extract_info_sum = {}
-    # if channel == 2:  # only extract info from customer channel
-
-    #     # extract info from this sentence
-    #     extract_info_line = extract_customer_info(text)
-    #     # print("extract_info_line:")
-    #     # pprint(extract_info_line)
-
-    #     # extract info from up to now customer conversation
-    #     extract_info_sum = extract_customer_info(customer_text_sum + " " + text)
-    #     # print("extract_info_sum:")
-    #     # pprint(extract_info_sum)
-
-    # # get result and push web socket to GUI display in dialog
-    # logger.info(
-    #     f"send STT result: text='{text}' channel={channel} call_id={call_id} info={extract_info_line}"
-    # )
-    # send_msg(text, channel, call_id, extract_info_line, extract_info_sum)
-
-    # return text

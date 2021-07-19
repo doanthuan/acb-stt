@@ -53,6 +53,8 @@ def send_email():
         app.logger.info(
             f"Using following for send email: host={settings.SMTP_HOST} port={settings.SMTP_PORT}"
         )
+        app.logger.info(f'Send email to: {data["to"]}')
+        app.logger.info(f'Content: {data["content"]}')
 
         with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
             server.ehlo()
@@ -62,7 +64,7 @@ def send_email():
             app.logger.info(f"Authenticate with mail server: user={settings.SMTP_USER}")
             server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
             server.sendmail(settings.SMTP_EMAIL, data["to"], msg.as_string())
-            app.logger.info(f"Send email OK")
+            app.logger.info("Send email OK")
         status = "SUCCESS"
     except Exception as e:
         status = "ERROR"

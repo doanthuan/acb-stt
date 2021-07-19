@@ -53,8 +53,8 @@ def extract_info_from_ner(ner_output: Dict, tag: str) -> List[str]:
                 logger.info(f'tag={token["ner"]} text={token["text"]}')
                 if (
                     (("B-" + tag) == token["ner"])
-                    or (("E-" + tag) == token["ner"])
-                    or (("S-" + tag) == token["ner"])
+                    or (("E-" + tag) == token["ner"])  # noqa: W503
+                    or (("S-" + tag) == token["ner"])  # noqa: W503
                 ):
                     is_name_ok = True
                 single_ent.append(token["text"])
@@ -64,13 +64,13 @@ def extract_info_from_ner(ner_output: Dict, tag: str) -> List[str]:
         single_ent = " ".join(single_ent)
         names = single_ent.split(" ")
 
-        if (is_name_ok and len(names) > 1) or (len(names) > 2 and len(names) <= 4):
+        if (is_name_ok and len(names) > 2) or (len(names) > 2 and len(names) <= 4):
             res.append(single_ent)
     logger.info(f"tag={tag} result={res}")
     return res
 
 
-def num_mapping(text):
+def num_mapping(text) -> str:
     for pattern, repl in NUMERIC_MAPPINGS.items():
         text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
 
@@ -138,7 +138,7 @@ def is_valid_name(text: str):
     return False
 
 
-def extract_customer_info_str(text: str, criteria: Dict) -> Dict:
+def extract_customer_info_str(text: str, criteria: Dict) -> Dict[str, str]:
     """Doing entities regconition"""
     customer_info = {
         "nameList": "",
@@ -206,11 +206,11 @@ def process_address_input(in_text: str) -> str:
     return in_text
 
 
-def is_digit(word):
+def is_digit(word) -> bool:
     return word in DIGITS
 
 
-def expand_number(text):
+def expand_number(text) -> str:
     if "số" not in text:
         return text
 
@@ -222,9 +222,9 @@ def expand_number(text):
         # pattern like: ba số không = 000
         if (
             (i < words_len - 2)
-            and is_digit(words[i])
-            and (words[i + 1] == "số")
-            and is_digit(words[i + 2])
+            and is_digit(words[i])  # noqa: W503
+            and (words[i + 1] == "số")  # noqa: W503
+            and is_digit(words[i + 2])  # noqa: W503
         ):
             res.append(int(words[i]) * words[i + 2])
             i += 3
@@ -245,7 +245,6 @@ def extract_identity_info(text: str) -> Dict:
     }
 
 
-# from vietnam_number import w2n_single, w2n_couple
 def parse_id_phone_number(text) -> Tuple[str, str]:
 
     text = num_mapping(text)
@@ -275,5 +274,3 @@ def extract_info(regex: str, text: str) -> str:
     # Remove non-digit character
     res = re.sub(r"[^0-9]", "", res)
     return res
-    # start, end = match.span()
-    # return text[start : end - 1]  # noqa: E203

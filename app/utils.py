@@ -1,6 +1,6 @@
 import logging
 from os import path
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import paramiko
 import requests
@@ -27,7 +27,7 @@ def upload_file() -> str:
     return filename
 
 
-def preprocess(filename: str) -> List[AudioSegment]:
+def preprocess(filename: str) -> Any:
     name = path.splitext(filename)
 
     # TODO: detect number of channels in the audio file for the voicemail
@@ -71,7 +71,7 @@ def do_stt_and_extract_info(
     current_text: Dict[str, str] = None,
     criteria: Dict = None,
     is_voice_message: bool = False,
-) -> str:
+) -> Any:
     # TODO: refactoring
     if not path.exists(audio_segment.audio_file):
         raise ValueError(f"Path {audio_segment.audio_file} does not exist")
@@ -127,11 +127,6 @@ def extract_call_info(
         logger.info("`NAME` scanning is activated")
         criteria["detect_name"] = True
 
-    # HACK: sometimes, customer introduces the name before-hand
-    # if audio_segment.channel == 2 and contains_keyword(["mình là"], output_text):
-    #     logger.info("Customer introduces himself/herself")
-    #     criteria["detect_name"] = True
-
     if start_checking or contains_keyword(["địa chỉ", "số nhà"], output_text):
         logger.info("`ADDRESS` scanning is activated")
         criteria["detect_address"] = True
@@ -167,7 +162,6 @@ def extract_call_info(
         current_text["card_no"] = " ".join([current_text["card_no"], output_text])
 
     if criteria["detect_address"]:
-        # print("address",current_text["addresses"])
         current_text["addresses"] = " ".join([current_text["addresses"], output_text])
 
     # attempt to extract customer info from current sentence and the entire sentence
