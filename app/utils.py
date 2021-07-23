@@ -181,8 +181,10 @@ def extract_call_info(
     if criteria["detect_card_no"]:
         current_text["card_no"] = " ".join([current_text["card_no"], output_text])
 
-    if criteria["detect_address"]:
-        current_text["addresses"] = " ".join([current_text["addresses"], output_text])
+    # if criteria["detect_address"]:
+    #     current_text["addresses"] = " ".join([current_text["addresses"], output_text])
+    current_text['names'] = output_text
+    current_text['addresses'] = output_text
 
     # attempt to extract customer info from current sentence and the entire sentence
     customer_info = extract_customer_info(output_text, criteria=criteria)

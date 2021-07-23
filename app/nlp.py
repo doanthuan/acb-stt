@@ -9,6 +9,8 @@ from .constant import (ACC_NO_REGEX, BAD_NAMES, BAD_WORDS, CARD_NO_REGEX,
                        DIGITS, ID_REGEX, ID_REGEX_OLD, NUMERIC_MAPPINGS,
                        PHONE_REGEX)
 
+from .nlp_utils import parse_customer_info
+
 logger = logging.getLogger(__name__)
 p = Pipeline(lang="vietnamese", gpu=False, cache_dir=settings.CACHE_DIR)
 # p = Pipeline(lang="customized-ner", gpu=False, cache_dir=settings.CACHE_DIR)
@@ -158,20 +160,26 @@ def extract_customer_info_str(text: str, criteria: Dict) -> Dict[str, str]:
     logger.info(f'Scanning Named Identity for text="{text}"')
 
     ner_output = ""
-    if criteria.get("detect_name") is True:
-        ner_output = p.ner(normalize_name(text), is_sent=True)
-        names = extract_info_from_ner(ner_output, tag="PER")
-        # names = [name for name in names if is_valid_name(name)]
-        names = [name for name in names if not is_blacklist(name, BAD_NAMES)]
-        customer_info["nameList"] = ",".join(names)
+    # if criteria.get("detect_name") is True:
+    #     ner_output = p.ner(normalize_name(text), is_sent=True)
+    #     names = extract_info_from_ner(ner_output, tag="PER")
+    #     # names = [name for name in names if is_valid_name(name)]
+    #     names = [name for name in names if not is_blacklist(name, BAD_NAMES)]
+    #     customer_info["nameList"] = ",".join(names)
 
-    if criteria.get("detect_address") is True:
-        text = process_address_input(text)
-        ner_output = p.ner(normalize_name(text), is_sent=True)
-        addresses = extract_info_from_ner(ner_output, tag="LOC")
-        # addresses = [addr for addr in addresses if is_valid_name(addr)]
-        addresses = [addr for addr in addresses if not is_blacklist(addr, BAD_NAMES)]
-        customer_info["addressList"] = ",".join(addresses)
+    # if criteria.get("detect_address") is True:
+    #     text = process_address_input(text)
+    #     ner_output = p.ner(normalize_name(text), is_sent=True)
+    #     addresses = extract_info_from_ner(ner_output, tag="LOC")
+    #     # addresses = [addr for addr in addresses if is_valid_name(addr)]
+    #     addresses = [addr for addr in addresses if not is_blacklist(addr, BAD_NAMES)]
+    #     customer_info["addressList"] = ",".join(addresses)
+
+    per_list, loc_list = parse_customer_info(p, text)
+    if len(per_list) > 0:
+        customer_info["nameList"] = ",".join(per_list)
+    if len(loc_list) > 0:
+        customer_info["addressList"] = ",".join(loc_list)
 
     text = num_mapping(text)
     text = re.sub("|".join(BAD_WORDS), "", text)

@@ -1,9 +1,9 @@
 from trankit import Pipeline
-p = Pipeline(lang="vietnamese",gpu=False, cache_dir='app/cache')
+p = Pipeline(lang="vietnamese",gpu=False, cache_dir='../app/cache')
 
-text = 'CÒN ĐỊA CHỈ CỦA MÌNH THÌ VẪN LÀ HỒ VĂN HUÊ CŨ TRÊN CÁI ĐỊA CHỈ ĐĂNG KÝ VỚI NGÂN HÀNG ĐÓ HẢ LÀ CÁI THÔNG TIN CŨ MÌNH LÀ CHƯA THAY ĐỔI'
-text = text.lower()
 
-vi_output = p.ner(text, is_sent=True)
-sentence_pos = p.posdep(text, is_sent=True)
-print(sentence_pos)
+
+text = 'EM HÔM QUA CHUYỂN TIỀN CHO SỐ TÀI KHOẢN CỦA PHAN THỊ LÀ EM NGHI CÓ HIỆN TƯỢNG LỪA ĐẢO ẤY CHỊ CÓ THỂ CHO EM HỎI TÀI KHOẢN NÀY CÓ HOẠT ĐỘNG BÌNH THƯỜNG KHÔNG Ạ'
+per_list, loc_list = parse_customer_info(text)
+print(f'PERSON:{",".join(per_list)}')
+print(f'LOCATION:{",".join(loc_list)}')

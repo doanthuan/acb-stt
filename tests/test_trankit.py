@@ -1,6 +1,6 @@
 import pickle
 
-DEBUG = False
+DEBUG = True
 if not DEBUG:
     from trankit import Pipeline
     p = Pipeline(lang="vietnamese",gpu=False, cache_dir='../app/cache')
@@ -112,6 +112,16 @@ for sentence in corpus_pos:
                     name_list.append(full_name)
                     i += 2
                     continue
+
+        # if token['upos'] == 'NOUN' and token['xpos'] != 'Nc' and token['deprel'] == 'root':
+        #     if next_token and  next_token['upos'] == 'NOUN' and next_token['deprel'] == 'compound':
+        #         full_name = token['text'] + " %%% " + next_token['text']
+
+        #         if is_valid_name(full_name):
+        #             name_list.append(full_name)
+        #             i += 2
+        #             continue
+        
 
         i += 1
 
