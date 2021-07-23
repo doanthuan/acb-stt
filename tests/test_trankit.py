@@ -6,7 +6,7 @@ if not DEBUG:
     p = Pipeline(lang="vietnamese",gpu=False, cache_dir='../app/cache')
 
 bad_names = ['công an', 'hong', 'tám lăm', 'á', 'e', 'a', 'x', 'chi tiêu', 'kiều hối', 'en nờ']
-bad_names_pattern = ['bên', 'chấm']
+bad_names_pattern = ['bên', 'chấm', 'tài khoản']
 
 def is_valid_name(name):
     name = name.replace(' % ', ' ')
@@ -133,8 +133,8 @@ if not DEBUG:
                 name_parts += " " + token['text']
             if 'LOC' in token['ner']:
                 loc_parts += " " + token['text']
-        if name_parts != "" and name_parts not in name_list:
-            name_list.append(name_parts)
+        if name_parts != "" and name_parts not in per_list:
+            per_list.append(name_parts)
             print(f'PERSON: {name_parts}')
         if loc_parts != "" and  loc_parts not in loc_list:
             loc_list.append(loc_parts)
