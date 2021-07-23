@@ -64,7 +64,7 @@ def parse_senten_pos(sentence):
                 if '%' in full_name:
                     i += 1
                 continue
-            
+
         if token['upos'] == 'NOUN' and token['xpos'] != 'Nc' and token['deprel'] not in ['nsubj','obl','obj','compound', 'nmod']:
             if next_token and  next_token['xpos'] == 'Np' and next_token['deprel'] == 'compound':
                 full_name = token['text'] + " %% " + next_token['text']
@@ -88,6 +88,8 @@ def parse_ner(p, name_entities):
     per_list = []
     loc_list = []
     for name in name_entities:
+        name = name.replace(' %% ',' ')
+        name = name.replace(' % ',' ')
         name_str = " ".join([n.capitalize() for n in name.split(' ')])
         output = p.ner(name_str, is_sent=True)
         name_parts = ""
