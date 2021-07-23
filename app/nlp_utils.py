@@ -35,7 +35,7 @@ def parse_customer_info(p, sentence):
     # parse POS to capitalize private name
     name_entities = parse_senten_pos(sentence_pos)
 
-    per_list, loc_list = parse_ner(name_entities)
+    per_list, loc_list = parse_ner(p, name_entities)
     return per_list, loc_list
 
 
