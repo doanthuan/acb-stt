@@ -35,7 +35,7 @@ def parse_customer_info(p, sentence):
     # parse POS to capitalize private name
     name_entities = parse_senten_pos(sentence_pos)
 
-    per_list, loc_list = parse_ner(p, name_entities)
+    per_list, loc_list = parse_ner(p,name_entities)
     return per_list, loc_list
 
 
@@ -64,7 +64,20 @@ def parse_senten_pos(sentence):
                 if '%' in full_name:
                     i += 1
                 continue
+            
+        if token['upos'] == 'NOUN' and token['xpos'] != 'Nc' and token['deprel'] not in ['nsubj','obl','obj','compound', 'nmod']:
+            if next_token and  next_token['xpos'] == 'Np' and next_token['deprel'] == 'compound':
+                full_name = token['text'] + " %% " + next_token['text']
+                if i < len(sentence['tokens']) - 2: 
+                    next_next_token = sentence['tokens'][i+2]
+                    if next_next_token['xpos'] == 'Np' and next_next_token['deprel'] == 'compound':
+                        full_name = token['text'] + " %% " + next_token['text'] + " %% " + next_next_token['text']
+                        i += 1
 
+                if is_valid_name(full_name):
+                    name_list.append(full_name)
+                    i += 2
+                    continue
         
         i += 1
 
